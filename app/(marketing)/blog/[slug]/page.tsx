@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { notFound } from "next/navigation";
+import { FEATURES } from "@/config/features";
 import { BlogPostCTA } from "@/components/blog/BlogPostCTA";
 import { MDXContent } from "@/components/blog/MDXContent";
 import { PostNavigation } from "@/components/blog/PostNavigation";
@@ -16,6 +18,7 @@ type BlogPostPageProps = {
 };
 
 export function generateStaticParams() {
+  if (!FEATURES.blog) return [];
   return getAllPosts().map((post) => ({ slug: post.slug }));
 }
 
@@ -49,6 +52,8 @@ export function generateMetadata({ params }: BlogPostPageProps): Metadata {
 }
 
 export default function BlogPostPage({ params }: BlogPostPageProps) {
+  if (!FEATURES.blog) notFound();
+
   const { frontmatter, content } = getPostBySlug(params.slug);
   const { previous, next } = getAdjacentPosts(params.slug);
   const url = `${env.NEXT_PUBLIC_APP_URL}/blog/${params.slug}`;

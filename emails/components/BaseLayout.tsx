@@ -11,7 +11,7 @@ import {
   Text,
 } from "@react-email/components";
 import type { ReactNode } from "react";
-import { EMAIL_CONFIG } from "@/config/email";
+import { getEmailConfig } from "@/config/email";
 
 type BaseLayoutProps = {
   children: ReactNode;
@@ -20,7 +20,7 @@ type BaseLayoutProps = {
 
 export function BaseLayout({ children, previewText }: BaseLayoutProps) {
   const { appName, logoUrl, supportUrl, privacyUrl, unsubscribeUrl } =
-    EMAIL_CONFIG;
+    getEmailConfig();
 
   return (
     <Html>

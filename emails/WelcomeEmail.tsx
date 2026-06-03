@@ -5,14 +5,14 @@ import {
   emailHeading,
   emailText,
 } from "@/emails/components/BaseLayout";
-import { EMAIL_CONFIG } from "@/config/email";
+import { getEmailConfig } from "@/config/email";
 
 type WelcomeEmailProps = {
   firstName: string;
 };
 
 export function WelcomeEmail({ firstName }: WelcomeEmailProps) {
-  const { appName, dashboardUrl } = EMAIL_CONFIG;
+  const { appName, dashboardUrl } = getEmailConfig();
 
   return (
     <BaseLayout previewText={`Welcome to ${appName}, ${firstName}!`}>

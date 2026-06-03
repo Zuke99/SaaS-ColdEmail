@@ -17,3 +17,14 @@
 
 # General
 - All secrets are server-only — never import server env vars in client components
+
+# Feature Flags
+- ALWAYS import FEATURES from '@/config/features' to check if a feature is enabled
+- NEVER call a feature's service directly without checking FEATURES.featureName first
+- API routes return 404 when their feature is disabled
+- Server actions return early (no-op) when their feature is disabled
+- UI components conditionally render based on FEATURES flags
+- When adding a new feature: add to FEATURES in config/features.ts,
+  add ENABLE_FEATURENAME to env.ts and .env.local.example,
+  add startup validation in instrumentation.ts
+- Exception: config/features.ts reads ENABLE_* from process.env (single source for flags)

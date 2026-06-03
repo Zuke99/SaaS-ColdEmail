@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FEATURES } from "@/config/features";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/lib/actions/auth";
 import { getPlan } from "@/lib/supabase/getPlan";
@@ -26,12 +27,14 @@ export default async function DashboardPage() {
             Current plan:{" "}
             <span className="font-medium capitalize text-gray-900">{plan}</span>
           </p>
-          <Link
-            href="/pricing"
-            className="mt-4 inline-block text-sm font-medium text-gray-700 underline hover:text-gray-900"
-          >
-            View pricing
-          </Link>
+          {FEATURES.payments ? (
+            <Link
+              href="/pricing"
+              className="mt-4 inline-block text-sm font-medium text-gray-700 underline hover:text-gray-900"
+            >
+              View pricing
+            </Link>
+          ) : null}
           <form action={signOut} className="mt-8">
             <button
               type="submit"

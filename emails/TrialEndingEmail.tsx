@@ -5,7 +5,7 @@ import {
   emailHeading,
   emailText,
 } from "@/emails/components/BaseLayout";
-import { EMAIL_CONFIG } from "@/config/email";
+import { getEmailConfig } from "@/config/email";
 
 type TrialEndingEmailProps = {
   firstName: string;
@@ -16,7 +16,7 @@ export function TrialEndingEmail({
   firstName,
   daysLeft,
 }: TrialEndingEmailProps) {
-  const { appName, pricingUrl } = EMAIL_CONFIG;
+  const { appName, pricingUrl } = getEmailConfig();
 
   return (
     <BaseLayout previewText={`Your ${appName} trial ends in ${daysLeft} days`}>

@@ -6,7 +6,7 @@ import {
   emailMuted,
   emailText,
 } from "@/emails/components/BaseLayout";
-import { EMAIL_CONFIG } from "@/config/email";
+import { getEmailConfig } from "@/config/email";
 
 type PaymentSuccessEmailProps = {
   firstName: string;
@@ -21,7 +21,7 @@ export function PaymentSuccessEmail({
   amount,
   nextBillingDate,
 }: PaymentSuccessEmailProps) {
-  const { appName, dashboardUrl } = EMAIL_CONFIG;
+  const { appName, dashboardUrl } = getEmailConfig();
 
   return (
     <BaseLayout previewText={`Payment confirmed — ${appName}`}>

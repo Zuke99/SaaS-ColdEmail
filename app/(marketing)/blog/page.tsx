@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
+import { FEATURES } from "@/config/features";
 import { BlogPostCard } from "@/components/blog/BlogPostCard";
 import { getAllPosts, getAllTags } from "@/lib/blog";
 import { env } from "@/env";
@@ -21,6 +23,8 @@ export const metadata: Metadata = {
 };
 
 export default function BlogIndexPage() {
+  if (!FEATURES.blog) notFound();
+
   const posts = getAllPosts();
   const tags = getAllTags();
 

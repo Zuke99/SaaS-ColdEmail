@@ -6,14 +6,14 @@ import {
   emailMuted,
   emailText,
 } from "@/emails/components/BaseLayout";
-import { EMAIL_CONFIG } from "@/config/email";
+import { getEmailConfig } from "@/config/email";
 
 type PasswordResetEmailProps = {
   resetUrl: string;
 };
 
 export function PasswordResetEmail({ resetUrl }: PasswordResetEmailProps) {
-  const { appName } = EMAIL_CONFIG;
+  const { appName } = getEmailConfig();
 
   return (
     <BaseLayout previewText={`Reset your ${appName} password`}>

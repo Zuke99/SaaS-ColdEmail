@@ -1,3 +1,4 @@
+import { FEATURES } from "@/config/features";
 import { getAllPosts } from "@/lib/blog";
 import { env } from "@/env";
 
@@ -11,6 +12,10 @@ function escapeXml(value: string): string {
 }
 
 export async function GET() {
+  if (!FEATURES.blog) {
+    return new Response("Not found", { status: 404 });
+  }
+
   const posts = getAllPosts();
   const baseUrl = env.NEXT_PUBLIC_APP_URL;
   const appName = env.NEXT_PUBLIC_APP_NAME;

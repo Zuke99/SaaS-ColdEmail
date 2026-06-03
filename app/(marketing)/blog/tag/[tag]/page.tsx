@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
+import { FEATURES } from "@/config/features";
 import { BlogPostCard } from "@/components/blog/BlogPostCard";
 import { getAllTags, getPostsByTag } from "@/lib/blog";
 import { env } from "@/env";
@@ -9,6 +11,7 @@ type TagPageProps = {
 };
 
 export function generateStaticParams() {
+  if (!FEATURES.blog) return [];
   return getAllTags().map((tag) => ({ tag }));
 }
 
@@ -21,6 +24,8 @@ export function generateMetadata({ params }: TagPageProps): Metadata {
 }
 
 export default function BlogTagPage({ params }: TagPageProps) {
+  if (!FEATURES.blog) notFound();
+
   const decodedTag = decodeURIComponent(params.tag);
   const posts = getPostsByTag(decodedTag);
 

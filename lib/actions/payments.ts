@@ -1,7 +1,8 @@
 "use server";
 
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import type { PlanId } from "@/config/plans";
+import { FEATURES } from "@/config/features";
 import { createAppCheckoutSession } from "@/lib/dodo/checkout";
 import { getPlanForCheckout } from "@/lib/plans/server";
 import { createClient } from "@/lib/supabase/server";
@@ -22,6 +23,8 @@ function sanitizeCheckoutError(message: string): string {
 export async function createCheckoutSession(
   planId: PlanId
 ): Promise<{ checkout_url?: string; error?: string }> {
+  if (!FEATURES.payments) notFound();
+
   const plan = getPlanForCheckout(planId);
 
   if (!plan?.dodoProductId) {
@@ -34,7 +37,7 @@ export async function createCheckoutSession(
   } = await supabase.auth.getUser();
 
   if (!user?.email) {
-    redirect("/login");
+    notFound();
   }
 
   const { data: profile } = await fromAppTable(supabase, "profiles")
@@ -70,6 +73,8 @@ export async function createCheckoutSession(
 }
 
 export async function startCheckout(planId: PlanId): Promise<void> {
+  if (!FEATURES.payments) notFound();
+
   const result = await createCheckoutSession(planId);
 
   if (result.error) {
@@ -86,6 +91,8 @@ export async function startCheckout(planId: PlanId): Promise<void> {
 }
 
 export async function redirectToCustomerPortal(): Promise<void> {
+  if (!FEATURES.payments) notFound();
+
   const supabase = await createClient();
   const {
     data: { user },

@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
+import { FEATURES } from "@/config/features";
 import { PLANS } from "@/config/plans";
 import { PricingCard } from "@/components/pricing/PricingCard";
 import { redirectToCustomerPortal } from "@/lib/actions/payments";
@@ -12,6 +14,8 @@ type PricingPageProps = {
 };
 
 export default async function PricingPage({ searchParams }: PricingPageProps) {
+  if (!FEATURES.payments) notFound();
+
   const supabase = await createClient();
   const {
     data: { user },

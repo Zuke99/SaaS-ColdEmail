@@ -1,10 +1,32 @@
+import { FEATURES } from "@/config/features";
 import { getAllPosts } from "@/lib/blog";
 import { env } from "@/env";
 import type { MetadataRoute } from "next";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const posts = getAllPosts();
   const baseUrl = env.NEXT_PUBLIC_APP_URL;
+
+  const staticUrls: MetadataRoute.Sitemap = [
+    {
+      url: baseUrl,
+      changeFrequency: "weekly",
+      priority: 1,
+    },
+  ];
+
+  if (FEATURES.payments) {
+    staticUrls.push({
+      url: `${baseUrl}/pricing`,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    });
+  }
+
+  if (!FEATURES.blog) {
+    return staticUrls;
+  }
+
+  const posts = getAllPosts();
 
   const blogUrls = posts.map((post) => ({
     url: `${baseUrl}/blog/${post.slug}`,
@@ -22,19 +44,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
   }));
 
   return [
-    {
-      url: baseUrl,
-      changeFrequency: "weekly",
-      priority: 1,
-    },
+    ...staticUrls,
     {
       url: `${baseUrl}/blog`,
       changeFrequency: "weekly",
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/pricing`,
-      changeFrequency: "monthly",
       priority: 0.8,
     },
     ...blogUrls,

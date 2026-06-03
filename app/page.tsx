@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FEATURES } from "@/config/features";
 
 export default function HomePage() {
   return (
@@ -23,18 +24,22 @@ export default function HomePage() {
           >
             Sign up
           </Link>
-          <Link
-            href="/pricing"
-            className="rounded-lg border border-gray-300 bg-white px-6 py-3 text-sm font-medium text-gray-900 transition hover:bg-gray-50"
-          >
-            Pricing
-          </Link>
-          <Link
-            href="/blog"
-            className="rounded-lg border border-gray-300 bg-white px-6 py-3 text-sm font-medium text-gray-900 transition hover:bg-gray-50"
-          >
-            Blog
-          </Link>
+          {FEATURES.payments ? (
+            <Link
+              href="/pricing"
+              className="rounded-lg border border-gray-300 bg-white px-6 py-3 text-sm font-medium text-gray-900 transition hover:bg-gray-50"
+            >
+              Pricing
+            </Link>
+          ) : null}
+          {FEATURES.blog ? (
+            <Link
+              href="/blog"
+              className="rounded-lg border border-gray-300 bg-white px-6 py-3 text-sm font-medium text-gray-900 transition hover:bg-gray-50"
+            >
+              Blog
+            </Link>
+          ) : null}
         </div>
       </div>
     </main>

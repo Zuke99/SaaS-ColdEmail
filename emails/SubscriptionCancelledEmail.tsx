@@ -6,7 +6,7 @@ import {
   emailMuted,
   emailText,
 } from "@/emails/components/BaseLayout";
-import { EMAIL_CONFIG } from "@/config/email";
+import { getEmailConfig } from "@/config/email";
 
 type SubscriptionCancelledEmailProps = {
   firstName: string;
@@ -19,7 +19,7 @@ export function SubscriptionCancelledEmail({
   planName,
   accessUntil,
 }: SubscriptionCancelledEmailProps) {
-  const { appName, pricingUrl, supportUrl } = EMAIL_CONFIG;
+  const { appName, pricingUrl, supportUrl } = getEmailConfig();
 
   return (
     <BaseLayout previewText={`Your ${appName} subscription has been cancelled`}>

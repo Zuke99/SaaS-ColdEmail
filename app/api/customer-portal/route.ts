@@ -1,15 +1,24 @@
 import { CustomerPortal } from "@dodopayments/nextjs";
 import { NextRequest, NextResponse } from "next/server";
-import { env } from "@/env";
+import { FEATURES } from "@/config/features";
+import { getDodoPaymentsConfig } from "@/lib/payments/config";
 
 function getCustomerPortalHandler() {
+  const { apiKey, environment } = getDodoPaymentsConfig();
   return CustomerPortal({
-    bearerToken: env.DODO_PAYMENTS_API_KEY,
-    environment: env.DODO_PAYMENTS_ENVIRONMENT,
+    bearerToken: apiKey,
+    environment,
   });
 }
 
 export async function GET(req: NextRequest) {
+  if (!FEATURES.payments) {
+    return NextResponse.json(
+      { error: "Payments not enabled" },
+      { status: 404 }
+    );
+  }
+
   try {
     return await getCustomerPortalHandler()(req);
   } catch (err) {

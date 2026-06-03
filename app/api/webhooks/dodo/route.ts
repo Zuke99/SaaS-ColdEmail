@@ -1,11 +1,13 @@
 import { Webhooks } from "@dodopayments/nextjs";
 import { NextRequest, NextResponse } from "next/server";
-import { env } from "@/env";
+import { FEATURES } from "@/config/features";
+import { getDodoPaymentsConfig } from "@/lib/payments/config";
 import { handleDodoWebhookPayload } from "@/lib/dodo/webhook-handlers";
 
 function getWebhookHandler() {
+  const { webhookKey } = getDodoPaymentsConfig();
   return Webhooks({
-    webhookKey: env.DODO_PAYMENTS_WEBHOOK_KEY,
+    webhookKey,
     onPayload: async (payload) => {
       try {
         await handleDodoWebhookPayload(payload);
@@ -17,6 +19,13 @@ function getWebhookHandler() {
 }
 
 export async function POST(req: NextRequest) {
+  if (!FEATURES.payments) {
+    return NextResponse.json(
+      { error: "Payments not enabled" },
+      { status: 404 }
+    );
+  }
+
   try {
     return await getWebhookHandler()(req);
   } catch (error) {

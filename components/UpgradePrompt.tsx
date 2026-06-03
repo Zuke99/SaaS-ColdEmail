@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FEATURES } from "@/config/features";
 import { getPlanById, type PlanId } from "@/config/plans";
 import { startCheckout } from "@/lib/actions/payments";
 
@@ -11,6 +12,8 @@ export function UpgradePrompt({
   requiredPlan = "pro",
   title = "Upgrade required",
 }: UpgradePromptProps) {
+  if (!FEATURES.payments) return null;
+
   const plan = getPlanById(requiredPlan);
 
   return (

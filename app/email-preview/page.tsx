@@ -1,5 +1,6 @@
 import { render } from "@react-email/components";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { FEATURES } from "@/config/features";
 import { env } from "@/env";
 import { PaymentSuccessEmail } from "@/emails/PaymentSuccessEmail";
 import { PasswordResetEmail } from "@/emails/PasswordResetEmail";
@@ -7,57 +8,62 @@ import { SubscriptionCancelledEmail } from "@/emails/SubscriptionCancelledEmail"
 import { TrialEndingEmail } from "@/emails/TrialEndingEmail";
 import { WelcomeEmail } from "@/emails/WelcomeEmail";
 
-const PREVIEWS = [
-  {
-    id: "welcome",
-    name: "Welcome",
-    element: WelcomeEmail({ firstName: "Alex" }),
-  },
-  {
-    id: "password-reset",
-    name: "Password reset",
-    element: PasswordResetEmail({
-      resetUrl: "https://example.com/reset?token=mock",
-    }),
-  },
-  {
-    id: "payment-success",
-    name: "Payment success",
-    element: PaymentSuccessEmail({
-      firstName: "Alex",
-      planName: "Pro",
-      amount: "$19.00",
-      nextBillingDate: "April 3, 2026",
-    }),
-  },
-  {
-    id: "subscription-cancelled",
-    name: "Subscription cancelled",
-    element: SubscriptionCancelledEmail({
-      firstName: "Alex",
-      planName: "Pro",
-      accessUntil: "April 3, 2026",
-    }),
-  },
-  {
-    id: "trial-ending",
-    name: "Trial ending",
-    element: TrialEndingEmail({ firstName: "Alex", daysLeft: 3 }),
-  },
-] as const;
+function getEmailPreviews() {
+  return [
+    {
+      id: "welcome",
+      name: "Welcome",
+      element: WelcomeEmail({ firstName: "Alex" }),
+    },
+    {
+      id: "password-reset",
+      name: "Password reset",
+      element: PasswordResetEmail({
+        resetUrl: "https://example.com/reset?token=mock",
+      }),
+    },
+    {
+      id: "payment-success",
+      name: "Payment success",
+      element: PaymentSuccessEmail({
+        firstName: "Alex",
+        planName: "Pro",
+        amount: "$19.00",
+        nextBillingDate: "April 3, 2026",
+      }),
+    },
+    {
+      id: "subscription-cancelled",
+      name: "Subscription cancelled",
+      element: SubscriptionCancelledEmail({
+        firstName: "Alex",
+        planName: "Pro",
+        accessUntil: "April 3, 2026",
+      }),
+    },
+    {
+      id: "trial-ending",
+      name: "Trial ending",
+      element: TrialEndingEmail({ firstName: "Alex", daysLeft: 3 }),
+    },
+  ] as const;
+}
 
 export default async function EmailPreviewPage({
   searchParams,
 }: {
   searchParams: { template?: string };
 }) {
+  if (!FEATURES.email) notFound();
+
   if (env.NODE_ENV === "production") {
     redirect("/");
   }
 
-  const selectedId = searchParams.template ?? PREVIEWS[0].id;
+  const previews = getEmailPreviews();
+  const selectedId = searchParams.template ?? previews[0].id;
   const selected =
-    PREVIEWS.find((p) => p.id === selectedId) ?? PREVIEWS[0];
+    previews.find((p) => p.id === selectedId) ?? previews[0];
   const html = await render(selected.element);
 
   return (
@@ -69,7 +75,7 @@ export default async function EmailPreviewPage({
         </p>
 
         <nav className="mt-6 flex flex-wrap gap-2">
-          {PREVIEWS.map((preview) => (
+          {previews.map((preview) => (
             <a
               key={preview.id}
               href={`/email-preview?template=${preview.id}`}

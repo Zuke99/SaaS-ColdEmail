@@ -1,6 +1,7 @@
 "use server";
 
-import { EMAIL_CONFIG } from "@/config/email";
+import { FEATURES } from "@/config/features";
+import { getEmailConfig } from "@/config/email";
 import { PaymentSuccessEmail } from "@/emails/PaymentSuccessEmail";
 import { PasswordResetEmail } from "@/emails/PasswordResetEmail";
 import { SubscriptionCancelledEmail } from "@/emails/SubscriptionCancelledEmail";
@@ -12,7 +13,9 @@ export async function sendWelcomeEmail(user: {
   email: string;
   firstName: string;
 }) {
-  const { appName } = EMAIL_CONFIG;
+  if (!FEATURES.email) return;
+
+  const { appName } = getEmailConfig();
 
   return sendEmail({
     to: user.email,
@@ -22,7 +25,9 @@ export async function sendWelcomeEmail(user: {
 }
 
 export async function sendPasswordResetEmail(email: string, resetUrl: string) {
-  const { appName } = EMAIL_CONFIG;
+  if (!FEATURES.email) return;
+
+  const { appName } = getEmailConfig();
 
   return sendEmail({
     to: email,
@@ -35,7 +40,9 @@ export async function sendPaymentSuccessEmail(
   user: { email: string; firstName: string },
   payment: { planName: string; amount: string; nextBillingDate: string }
 ) {
-  const { appName } = EMAIL_CONFIG;
+  if (!FEATURES.email) return;
+
+  const { appName } = getEmailConfig();
 
   return sendEmail({
     to: user.email,
@@ -53,7 +60,9 @@ export async function sendTrialEndingEmail(
   user: { email: string; firstName: string },
   daysLeft: number
 ) {
-  const { appName } = EMAIL_CONFIG;
+  if (!FEATURES.email) return;
+
+  const { appName } = getEmailConfig();
 
   return sendEmail({
     to: user.email,
@@ -66,7 +75,9 @@ export async function sendSubscriptionCancelledEmail(
   user: { email: string; firstName: string },
   details: { planName: string; accessUntil: string }
 ) {
-  const { appName } = EMAIL_CONFIG;
+  if (!FEATURES.email) return;
+
+  const { appName } = getEmailConfig();
 
   return sendEmail({
     to: user.email,

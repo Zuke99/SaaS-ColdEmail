@@ -3,7 +3,7 @@ import {
   sendPaymentSuccessEmail,
   sendSubscriptionCancelledEmail,
 } from "@/lib/actions/email";
-import { env } from "@/env";
+import { getDodoPaymentsConfig } from "@/lib/payments/config";
 import { getPlanDisplayName, planFromProductId, type PlanId } from "@/config/plans";
 import { formatAmount, formatBillingDate, getFirstName } from "@/lib/email/utils";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -63,7 +63,9 @@ function getSubscriptionProductId(data: {
 export async function handleDodoWebhookPayload(
   payload: WebhookPayload
 ): Promise<void> {
-  if (env.NODE_ENV === "development") {
+  const { productId: proProductId } = getDodoPaymentsConfig();
+
+  if (process.env.NODE_ENV === "development") {
     console.log("[Dodo Webhook]", payload.type);
   }
 
@@ -84,7 +86,7 @@ export async function handleDodoWebhookPayload(
 
       const plan = planFromProductId(
         getSubscriptionProductId(data),
-        env.DODO_PRO_PRODUCT_ID
+        proProductId
       );
 
       await updateProfileById(userId, {
@@ -130,7 +132,7 @@ export async function handleDodoWebhookPayload(
 
       const plan = planFromProductId(
         getSubscriptionProductId(data),
-        env.DODO_PRO_PRODUCT_ID
+        proProductId
       );
 
       await updateProfileById(userId, {
@@ -160,7 +162,7 @@ export async function handleDodoWebhookPayload(
         data.next_billing_date ?? data.expires_at ?? data.cancelled_at;
       const plan = planFromProductId(
         getSubscriptionProductId(data),
-        env.DODO_PRO_PRODUCT_ID
+        proProductId
       );
 
       await updateProfileById(userId, {
@@ -207,7 +209,7 @@ export async function handleDodoWebhookPayload(
 
       const productId = payment.product_cart?.[0]?.product_id ?? null;
       const plan = productId
-        ? planFromProductId(productId, env.DODO_PRO_PRODUCT_ID)
+        ? planFromProductId(productId, proProductId)
         : ("pro" as PlanId);
 
       await updateProfileById(userId, {

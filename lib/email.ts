@@ -1,6 +1,7 @@
 import { render } from "@react-email/components";
 import type { ReactElement } from "react";
-import { EMAIL_CONFIG } from "@/config/email";
+import { FEATURES } from "@/config/features";
+import { getEmailConfig } from "@/config/email";
 import { getResend } from "@/lib/resend";
 
 export interface SendEmailOptions {
@@ -18,12 +19,17 @@ export async function sendEmail({
   id?: string;
   error?: unknown;
 }> {
+  if (!FEATURES.email) {
+    return { success: false, error: "Email feature is disabled" };
+  }
+
   try {
+    const emailConfig = getEmailConfig();
     const html = await render(template);
 
     const { data, error } = await getResend().emails.send({
-      from: EMAIL_CONFIG.from,
-      replyTo: EMAIL_CONFIG.replyTo,
+      from: emailConfig.from,
+      replyTo: emailConfig.replyTo,
       to,
       subject,
       html,
