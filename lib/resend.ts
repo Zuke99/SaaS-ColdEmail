@@ -1,14 +1,11 @@
 import { Resend } from "resend";
+import { env } from "@/env";
 
 let resendClient: Resend | null = null;
 
 export function getResend(): Resend {
   if (!resendClient) {
-    const apiKey = process.env.RESEND_API_KEY;
-    if (!apiKey) {
-      throw new Error("RESEND_API_KEY is not set");
-    }
-    resendClient = new Resend(apiKey);
+    resendClient = new Resend(env.RESEND_API_KEY);
   }
   return resendClient;
 }

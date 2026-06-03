@@ -1,6 +1,19 @@
+# Environment Variables
+- ALWAYS import env from '@/env' for all environment variable access
+- NEVER use process.env.X directly anywhere in the codebase
+- NEVER add ! non-null assertions on env vars — t3-env guarantees they exist
+- NEVER add ?? '' fallbacks on env vars — use z.string().optional() in env.ts instead
+- When adding a new env var: add to env.ts server/client block AND runtimeEnv AND .env.local.example
+- Server vars are NEVER prefixed with NEXT_PUBLIC_
+- Client vars MUST be prefixed with NEXT_PUBLIC_
+- Exception: process.env.NEXT_RUNTIME in instrumentation.ts is a Next.js internal, not app config
+
 # Database
-- Always use Supabase client for all DB queries
-- Never use or suggest Prisma
-- Always use getTable() from lib/supabase/schema for table names
-- Always use server client for server components and actions
-- Always use browser client for client components
+- ALWAYS use Supabase client from lib/supabase/server.ts or lib/supabase/client.ts
+- NEVER use or suggest Prisma
+- ALWAYS use getTable() from lib/supabase/schema for table names
+- Use server client in server components, actions, and API routes
+- Use browser client in client components only
+
+# General
+- All secrets are server-only — never import server env vars in client components

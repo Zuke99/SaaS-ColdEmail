@@ -5,6 +5,7 @@ export interface Plan {
   name: string;
   price: string;
   description: string;
+  /** null for paid plans — product ID is resolved server-side from env */
   dodoProductId: string | null;
   features: string[];
   highlighted: boolean;
@@ -29,7 +30,7 @@ export const PLANS: Plan[] = [
     name: "Pro",
     price: "$19/mo",
     description: "For growing teams",
-    dodoProductId: process.env.DODO_PRO_PRODUCT_ID ?? "",
+    dodoProductId: null,
     features: [
       "Unlimited projects",
       "Advanced analytics",
@@ -40,9 +41,14 @@ export const PLANS: Plan[] = [
   },
 ];
 
-export function planFromProductId(productId: string): PlanId {
-  const match = PLANS.find((p) => p.dodoProductId === productId);
-  return match?.id ?? "pro";
+export function planFromProductId(
+  productId: string,
+  proProductId: string
+): PlanId {
+  if (productId === proProductId) {
+    return "pro";
+  }
+  return "pro";
 }
 
 export function hasAccess(userPlan: PlanId, requiredPlan: PlanId): boolean {

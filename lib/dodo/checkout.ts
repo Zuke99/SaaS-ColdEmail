@@ -1,5 +1,5 @@
 import { createCheckoutSession as dodoCreateCheckoutSession } from "@dodopayments/core/checkout";
-import { getDodoEnvironment } from "@/lib/dodo/env";
+import { env } from "@/env";
 
 type CreateAppCheckoutParams = {
   productId: string;
@@ -9,17 +9,6 @@ type CreateAppCheckoutParams = {
 };
 
 export async function createAppCheckoutSession(params: CreateAppCheckoutParams) {
-  const bearerToken = process.env.DODO_PAYMENTS_API_KEY;
-
-  if (!bearerToken) {
-    throw new Error("DODO_PAYMENTS_API_KEY is not configured.");
-  }
-
-  const returnUrl = process.env.DODO_PAYMENTS_RETURN_URL;
-  if (!returnUrl) {
-    throw new Error("DODO_PAYMENTS_RETURN_URL is not configured.");
-  }
-
   return dodoCreateCheckoutSession(
     {
       product_cart: [{ product_id: params.productId, quantity: 1 }],
@@ -27,14 +16,14 @@ export async function createAppCheckoutSession(params: CreateAppCheckoutParams) 
         email: params.customerEmail,
         name: params.customerName,
       },
-      return_url: returnUrl,
+      return_url: env.DODO_PAYMENTS_RETURN_URL,
       metadata: {
         user_id: params.userId,
       },
     },
     {
-      bearerToken,
-      environment: getDodoEnvironment(),
+      bearerToken: env.DODO_PAYMENTS_API_KEY,
+      environment: env.DODO_PAYMENTS_ENVIRONMENT,
     }
   );
 }

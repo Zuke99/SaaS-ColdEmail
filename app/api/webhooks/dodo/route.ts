@@ -1,15 +1,11 @@
 import { Webhooks } from "@dodopayments/nextjs";
 import { NextRequest, NextResponse } from "next/server";
+import { env } from "@/env";
 import { handleDodoWebhookPayload } from "@/lib/dodo/webhook-handlers";
 
 function getWebhookHandler() {
-  const webhookKey = process.env.DODO_PAYMENTS_WEBHOOK_KEY;
-  if (!webhookKey) {
-    return null;
-  }
-
   return Webhooks({
-    webhookKey,
+    webhookKey: env.DODO_PAYMENTS_WEBHOOK_KEY,
     onPayload: async (payload) => {
       try {
         await handleDodoWebhookPayload(payload);
@@ -21,12 +17,10 @@ function getWebhookHandler() {
 }
 
 export async function POST(req: NextRequest) {
-  const handler = getWebhookHandler();
-
-  if (!handler) {
-    console.error("[Dodo Webhook] DODO_PAYMENTS_WEBHOOK_KEY is not configured");
+  try {
+    return await getWebhookHandler()(req);
+  } catch (error) {
+    console.error("[Dodo Webhook] Handler error:", error);
     return NextResponse.json({ received: true }, { status: 200 });
   }
-
-  return handler(req);
 }

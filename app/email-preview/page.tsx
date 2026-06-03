@@ -1,5 +1,6 @@
 import { render } from "@react-email/components";
 import { redirect } from "next/navigation";
+import { env } from "@/env";
 import { PaymentSuccessEmail } from "@/emails/PaymentSuccessEmail";
 import { PasswordResetEmail } from "@/emails/PasswordResetEmail";
 import { SubscriptionCancelledEmail } from "@/emails/SubscriptionCancelledEmail";
@@ -50,7 +51,7 @@ export default async function EmailPreviewPage({
 }: {
   searchParams: { template?: string };
 }) {
-  if (process.env.NODE_ENV === "production") {
+  if (env.NODE_ENV === "production") {
     redirect("/");
   }
 

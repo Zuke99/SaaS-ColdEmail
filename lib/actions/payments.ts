@@ -1,8 +1,9 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { getPlanById, type PlanId } from "@/config/plans";
+import type { PlanId } from "@/config/plans";
 import { createAppCheckoutSession } from "@/lib/dodo/checkout";
+import { getPlanForCheckout } from "@/lib/plans/server";
 import { createClient } from "@/lib/supabase/server";
 import { fromAppTable } from "@/lib/supabase/schema";
 
@@ -13,7 +14,7 @@ function sanitizeCheckoutError(message: string): string {
     trimmed.startsWith("<html") ||
     trimmed.includes("<html")
   ) {
-    return "Checkout service unavailable. Verify DODO_PAYMENTS_API_KEY and DODO_PRO_PRODUCT_ID.";
+    return "Checkout service unavailable. Verify Dodo Payments configuration.";
   }
   return trimmed.length > 240 ? `${trimmed.slice(0, 240)}…` : trimmed;
 }
@@ -21,7 +22,7 @@ function sanitizeCheckoutError(message: string): string {
 export async function createCheckoutSession(
   planId: PlanId
 ): Promise<{ checkout_url?: string; error?: string }> {
-  const plan = getPlanById(planId);
+  const plan = getPlanForCheckout(planId);
 
   if (!plan?.dodoProductId) {
     return { error: "This plan is not available for checkout." };

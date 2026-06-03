@@ -1,15 +1,12 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { env } from "@/env";
 import { sendWelcomeEmail } from "@/lib/actions/email";
 import { getFirstName } from "@/lib/email/utils";
 import { ensureUserProfile } from "@/lib/supabase/profile";
 import { getPlan } from "@/lib/supabase/getPlan";
-
-function getAppUrl(): string {
-  return process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-}
+import { createClient } from "@/lib/supabase/server";
 
 function redirectWithError(path: string, message: string): never {
   const params = new URLSearchParams({ error: message });
@@ -82,7 +79,7 @@ export async function signInWithGoogle() {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: `${getAppUrl()}/auth/callback`,
+      redirectTo: `${env.NEXT_PUBLIC_APP_URL}/auth/callback`,
     },
   });
 

@@ -19,11 +19,6 @@ export async function sendEmail({
   error?: unknown;
 }> {
   try {
-    if (!process.env.RESEND_API_KEY) {
-      console.error("[Email] RESEND_API_KEY is not configured");
-      return { success: false, error: "RESEND_API_KEY is not configured" };
-    }
-
     const html = await render(template);
 
     const { data, error } = await getResend().emails.send({

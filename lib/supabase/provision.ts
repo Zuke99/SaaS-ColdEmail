@@ -1,18 +1,11 @@
 import { createClient } from "@supabase/supabase-js";
+import { env } from "@/env";
 
 export async function provisionAppSchema(): Promise<{
   success: boolean;
   message: string;
 }> {
-  const appId = process.env.NEXT_PUBLIC_APP_ID;
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!appId || !supabaseUrl || !serviceRoleKey) {
-    throw new Error(
-      "Missing required env vars: NEXT_PUBLIC_APP_ID, NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY"
-    );
-  }
+  const appId = env.NEXT_PUBLIC_APP_ID;
 
   if (!/^[a-z][a-z0-9_]{1,48}$/.test(appId)) {
     throw new Error(
@@ -20,28 +13,20 @@ export async function provisionAppSchema(): Promise<{
     );
   }
 
-  const adminClient = createClient(supabaseUrl, serviceRoleKey);
-
-  const { data: created, error } = await adminClient.rpc(
-    "provision_app_schema",
-    { schema_name: appId }
+  const adminClient = createClient(
+    env.NEXT_PUBLIC_SUPABASE_URL,
+    env.SUPABASE_SERVICE_ROLE_KEY
   );
 
+  const { error } = await adminClient.rpc("provision_app_schema", {
+    schema_name: appId,
+  });
+
   if (error) {
-    const hint =
-      error.message.includes("schema cache") ||
-      error.message.includes("Could not find the function")
-        ? " Run supabase/migrations/001_schema_provisioning.sql in Supabase SQL Editor, then restart the dev server."
-        : "";
-    console.error("[Schema Provisioning] Failed:", error.message + hint);
+    console.error("[Schema Provisioning] Failed:", error.message);
     return { success: false, message: error.message };
   }
 
-  const message =
-    created === true
-      ? `Schema "${appId}" was created`
-      : `Schema "${appId}" already exists`;
-
-  console.log(`[Schema Provisioning] ${message}`);
-  return { success: true, message };
+  console.log(`[Schema Provisioning] Schema "${appId}" is ready`);
+  return { success: true, message: `Schema "${appId}" is ready` };
 }

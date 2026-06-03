@@ -1,11 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { env } from "@/env";
 
 export function getAppSchema(): string {
-  const appId = process.env.NEXT_PUBLIC_APP_ID;
-  if (!appId) {
-    throw new Error("NEXT_PUBLIC_APP_ID is not set");
-  }
-  return appId;
+  return env.NEXT_PUBLIC_APP_ID;
 }
 
 /** Returns schema-qualified table name, e.g. `youtube_toolkit.profiles` */

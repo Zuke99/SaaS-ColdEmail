@@ -3,6 +3,7 @@ import {
   sendPaymentSuccessEmail,
   sendSubscriptionCancelledEmail,
 } from "@/lib/actions/email";
+import { env } from "@/env";
 import { getPlanDisplayName, planFromProductId, type PlanId } from "@/config/plans";
 import { formatAmount, formatBillingDate, getFirstName } from "@/lib/email/utils";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -62,7 +63,7 @@ function getSubscriptionProductId(data: {
 export async function handleDodoWebhookPayload(
   payload: WebhookPayload
 ): Promise<void> {
-  if (process.env.NODE_ENV === "development") {
+  if (env.NODE_ENV === "development") {
     console.log("[Dodo Webhook]", payload.type);
   }
 
@@ -81,7 +82,10 @@ export async function handleDodoWebhookPayload(
         return;
       }
 
-      const plan = planFromProductId(getSubscriptionProductId(data));
+      const plan = planFromProductId(
+        getSubscriptionProductId(data),
+        env.DODO_PRO_PRODUCT_ID
+      );
 
       await updateProfileById(userId, {
         plan,
@@ -124,7 +128,10 @@ export async function handleDodoWebhookPayload(
         return;
       }
 
-      const plan = planFromProductId(getSubscriptionProductId(data));
+      const plan = planFromProductId(
+        getSubscriptionProductId(data),
+        env.DODO_PRO_PRODUCT_ID
+      );
 
       await updateProfileById(userId, {
         plan,
@@ -151,7 +158,10 @@ export async function handleDodoWebhookPayload(
 
       const periodEnd =
         data.next_billing_date ?? data.expires_at ?? data.cancelled_at;
-      const plan = planFromProductId(getSubscriptionProductId(data));
+      const plan = planFromProductId(
+        getSubscriptionProductId(data),
+        env.DODO_PRO_PRODUCT_ID
+      );
 
       await updateProfileById(userId, {
         subscription_ends_at: periodEnd
@@ -197,7 +207,7 @@ export async function handleDodoWebhookPayload(
 
       const productId = payment.product_cart?.[0]?.product_id ?? null;
       const plan = productId
-        ? planFromProductId(productId)
+        ? planFromProductId(productId, env.DODO_PRO_PRODUCT_ID)
         : ("pro" as PlanId);
 
       await updateProfileById(userId, {

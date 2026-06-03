@@ -1,30 +1,24 @@
 import { Checkout } from "@dodopayments/nextjs";
 import { NextRequest, NextResponse } from "next/server";
-import { getDodoEnvironment } from "@/lib/dodo/env";
+import { env } from "@/env";
 
 function getCheckoutHandler() {
-  const bearerToken = process.env.DODO_PAYMENTS_API_KEY;
-  if (!bearerToken) {
-    return null;
-  }
-
   return Checkout({
-    bearerToken,
-    returnUrl: process.env.DODO_PAYMENTS_RETURN_URL,
-    environment: getDodoEnvironment(),
+    bearerToken: env.DODO_PAYMENTS_API_KEY,
+    returnUrl: env.DODO_PAYMENTS_RETURN_URL,
+    environment: env.DODO_PAYMENTS_ENVIRONMENT,
     type: "session",
   });
 }
 
 export async function POST(req: NextRequest) {
-  const handler = getCheckoutHandler();
-
-  if (!handler) {
+  try {
+    return await getCheckoutHandler()(req);
+  } catch (err) {
+    console.error("[Checkout API]", err);
     return NextResponse.json(
-      { error: "Dodo Payments is not configured." },
-      { status: 503 }
+      { error: "Checkout handler failed." },
+      { status: 500 }
     );
   }
-
-  return handler(req);
 }

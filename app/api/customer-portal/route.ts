@@ -1,28 +1,22 @@
 import { CustomerPortal } from "@dodopayments/nextjs";
 import { NextRequest, NextResponse } from "next/server";
-import { getDodoEnvironment } from "@/lib/dodo/env";
+import { env } from "@/env";
 
 function getCustomerPortalHandler() {
-  const bearerToken = process.env.DODO_PAYMENTS_API_KEY;
-  if (!bearerToken) {
-    return null;
-  }
-
   return CustomerPortal({
-    bearerToken,
-    environment: getDodoEnvironment(),
+    bearerToken: env.DODO_PAYMENTS_API_KEY,
+    environment: env.DODO_PAYMENTS_ENVIRONMENT,
   });
 }
 
 export async function GET(req: NextRequest) {
-  const handler = getCustomerPortalHandler();
-
-  if (!handler) {
+  try {
+    return await getCustomerPortalHandler()(req);
+  } catch (err) {
+    console.error("[Customer Portal API]", err);
     return NextResponse.json(
-      { error: "Dodo Payments is not configured." },
-      { status: 503 }
+      { error: "Customer portal handler failed." },
+      { status: 500 }
     );
   }
-
-  return handler(req);
 }
