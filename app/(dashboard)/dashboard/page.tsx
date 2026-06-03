@@ -1,11 +1,15 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/lib/actions/auth";
+import { getPlan } from "@/lib/supabase/getPlan";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  const plan = user ? await getPlan(user.id) : "free";
 
   return (
     <main className="min-h-screen bg-gray-50 px-4 py-12">
@@ -18,6 +22,16 @@ export default async function DashboardPage() {
               {user?.email ?? "User"}
             </span>
           </p>
+          <p className="mt-2 text-sm text-gray-600">
+            Current plan:{" "}
+            <span className="font-medium capitalize text-gray-900">{plan}</span>
+          </p>
+          <Link
+            href="/pricing"
+            className="mt-4 inline-block text-sm font-medium text-gray-700 underline hover:text-gray-900"
+          >
+            View pricing
+          </Link>
           <form action={signOut} className="mt-8">
             <button
               type="submit"

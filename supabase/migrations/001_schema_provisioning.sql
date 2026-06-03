@@ -26,6 +26,11 @@ begin
         full_name text,
         avatar_url text,
         plan text default ''free'',
+        dodo_customer_id text,
+        dodo_subscription_id text,
+        dodo_payment_id text,
+        subscription_ends_at timestamptz,
+        cancelled_at timestamptz,
         created_at timestamptz default now(),
         updated_at timestamptz default now(),
         primary key (id)

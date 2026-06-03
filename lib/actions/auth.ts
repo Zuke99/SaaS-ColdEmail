@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ensureUserProfile } from "@/lib/supabase/profile";
+import { getPlan } from "@/lib/supabase/getPlan";
 
 function getAppUrl(): string {
   return process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
@@ -33,6 +34,7 @@ export async function signInWithEmail(formData: FormData) {
 
   if (data.user) {
     await ensureUserProfile(supabase, data.user);
+    await getPlan(data.user.id);
   }
 
   redirect("/dashboard");
@@ -55,6 +57,7 @@ export async function signUpWithEmail(formData: FormData) {
 
   if (data.user) {
     await ensureUserProfile(supabase, data.user);
+    await getPlan(data.user.id);
   }
 
   redirect("/dashboard");
