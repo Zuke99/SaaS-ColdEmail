@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { CampaignStatusBadge } from "@/components/campaigns/CampaignStatusBadge";
 import { ContactsTab } from "@/components/campaigns/ContactsTab";
+import { SequenceTab } from "@/components/campaigns/SequenceTab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { CampaignWithCounts } from "@/lib/types/contact";
 
@@ -94,9 +95,7 @@ export function CampaignDetailContent({
           </TabsContent>
 
           <TabsContent value="sequence">
-            <div className="flex min-h-[200px] items-center justify-center rounded-lg border border-dashed border-border">
-              <p className="text-sm text-muted">Sequence editor coming soon</p>
-            </div>
+            <SequenceTab campaignId={campaignId} />
           </TabsContent>
         </Tabs>
       </div>

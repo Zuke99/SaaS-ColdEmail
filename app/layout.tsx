@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { GeistMono } from "geist/font/mono";
 import { GeistSans } from "geist/font/sans";
 import { LayoutShell } from "@/components/app/LayoutShell";
-import { Toaster } from "sonner";
+import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -22,15 +22,7 @@ export default function RootLayout({
     >
       <body className={`${GeistSans.className} antialiased`}>
         <LayoutShell>{children}</LayoutShell>
-        <Toaster
-          theme="dark"
-          toastOptions={{
-            classNames: {
-              toast:
-                "bg-surface border-border text-foreground",
-            },
-          }}
-        />
+        <Toaster />
       </body>
     </html>
   );
