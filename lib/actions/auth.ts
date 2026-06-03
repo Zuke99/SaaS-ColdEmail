@@ -2,6 +2,8 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { sendWelcomeEmail } from "@/lib/actions/email";
+import { getFirstName } from "@/lib/email/utils";
 import { ensureUserProfile } from "@/lib/supabase/profile";
 import { getPlan } from "@/lib/supabase/getPlan";
 
@@ -58,6 +60,18 @@ export async function signUpWithEmail(formData: FormData) {
   if (data.user) {
     await ensureUserProfile(supabase, data.user);
     await getPlan(data.user.id);
+
+    const firstName = getFirstName(
+      typeof data.user.user_metadata?.full_name === "string"
+        ? data.user.user_metadata.full_name
+        : null,
+      data.user.email ?? email
+    );
+
+    sendWelcomeEmail({
+      email: data.user.email ?? email,
+      firstName,
+    }).catch((err) => console.error("[Email] Welcome email failed:", err));
   }
 
   redirect("/dashboard");

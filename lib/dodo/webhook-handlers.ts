@@ -1,5 +1,10 @@
 import type { WebhookPayload } from "@dodopayments/core";
-import { planFromProductId, type PlanId } from "@/config/plans";
+import {
+  sendPaymentSuccessEmail,
+  sendSubscriptionCancelledEmail,
+} from "@/lib/actions/email";
+import { getPlanDisplayName, planFromProductId, type PlanId } from "@/config/plans";
+import { formatAmount, formatBillingDate, getFirstName } from "@/lib/email/utils";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { fromAppTable, getTable } from "@/lib/supabase/schema";
 
@@ -85,6 +90,23 @@ export async function handleDodoWebhookPayload(
         subscription_ends_at: data.next_billing_date.toISOString(),
         cancelled_at: null,
       });
+
+      sendPaymentSuccessEmail(
+        {
+          email: data.customer.email,
+          firstName: getFirstName(data.customer.name, data.customer.email),
+        },
+        {
+          planName: getPlanDisplayName(plan),
+          amount: formatAmount(
+            data.currency,
+            data.recurring_pre_tax_amount
+          ),
+          nextBillingDate: formatBillingDate(data.next_billing_date),
+        }
+      ).catch((err) =>
+        console.error("[Email] Payment success email failed:", err)
+      );
       break;
     }
 
@@ -129,6 +151,7 @@ export async function handleDodoWebhookPayload(
 
       const periodEnd =
         data.next_billing_date ?? data.expires_at ?? data.cancelled_at;
+      const plan = planFromProductId(getSubscriptionProductId(data));
 
       await updateProfileById(userId, {
         subscription_ends_at: periodEnd
@@ -136,6 +159,21 @@ export async function handleDodoWebhookPayload(
           : null,
         cancelled_at: new Date().toISOString(),
       });
+
+      sendSubscriptionCancelledEmail(
+        {
+          email: data.customer.email,
+          firstName: getFirstName(data.customer.name, data.customer.email),
+        },
+        {
+          planName: getPlanDisplayName(plan),
+          accessUntil: periodEnd
+            ? formatBillingDate(periodEnd)
+            : "the end of your billing period",
+        }
+      ).catch((err) =>
+        console.error("[Email] Subscription cancelled email failed:", err)
+      );
       break;
     }
 

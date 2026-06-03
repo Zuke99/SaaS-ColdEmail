@@ -1,0 +1,6 @@
+# Database
+- Always use Supabase client for all DB queries
+- Never use or suggest Prisma
+- Always use getTable() from lib/supabase/schema for table names
+- Always use server client for server components and actions
+- Always use browser client for client components

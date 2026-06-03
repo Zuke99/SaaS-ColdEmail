@@ -53,3 +53,7 @@ export function hasAccess(userPlan: PlanId, requiredPlan: PlanId): boolean {
 export function getPlanById(planId: PlanId): Plan | undefined {
   return PLANS.find((p) => p.id === planId);
 }
+
+export function getPlanDisplayName(planId: PlanId): string {
+  return getPlanById(planId)?.name ?? planId;
+}
