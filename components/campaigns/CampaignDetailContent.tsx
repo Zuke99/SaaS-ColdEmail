@@ -2,10 +2,12 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Pencil } from "lucide-react";
 import { CampaignStatusBadge } from "@/components/campaigns/CampaignStatusBadge";
 import { ContactsTab } from "@/components/campaigns/ContactsTab";
+import { EditCampaignSheet } from "@/components/campaigns/EditCampaignSheet";
 import { SequenceTab } from "@/components/campaigns/SequenceTab";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { CampaignWithCounts } from "@/lib/types/contact";
 
@@ -19,6 +21,7 @@ export function CampaignDetailContent({
   const [campaign, setCampaign] = useState<CampaignWithCounts | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
 
   const loadCampaign = useCallback(async () => {
     setError(null);
@@ -80,8 +83,29 @@ export function CampaignDetailContent({
             {campaign.name}
           </h1>
         </div>
-        <CampaignStatusBadge status={campaign.status} />
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setEditOpen(true)}
+          >
+            <Pencil className="mr-2 h-4 w-4" />
+            Edit
+          </Button>
+          <CampaignStatusBadge status={campaign.status} />
+        </div>
       </header>
+
+      <EditCampaignSheet
+        campaign={campaign}
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        onUpdated={(updated) => {
+          setCampaign((prev) =>
+            prev ? { ...prev, ...updated, contacts_count: prev.contacts_count } : prev
+          );
+        }}
+      />
 
       <div className="flex-1 px-4 py-4 sm:px-6 sm:py-6">
         <Tabs defaultValue="contacts" className="w-full">

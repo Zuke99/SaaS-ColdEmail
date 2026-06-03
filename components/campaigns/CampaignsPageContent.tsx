@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { CampaignStatusBadge } from "@/components/campaigns/CampaignStatusBadge";
 import { CreateCampaignSheet } from "@/components/campaigns/CreateCampaignSheet";
+import { EditCampaignSheet } from "@/components/campaigns/EditCampaignSheet";
 import type { Campaign } from "@/lib/types/campaign";
 
 export function CampaignsPageContent() {
@@ -22,6 +23,8 @@ export function CampaignsPageContent() {
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [editCampaign, setEditCampaign] = useState<Campaign | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
 
   const loadCampaigns = useCallback(async () => {
     setFetchError(null);
@@ -45,6 +48,11 @@ export function CampaignsPageContent() {
 
   function openCreateSheet() {
     setSheetOpen(true);
+  }
+
+  function openEditSheet(campaign: Campaign) {
+    setEditCampaign(campaign);
+    setEditOpen(true);
   }
 
   return (
@@ -121,7 +129,11 @@ export function CampaignsPageContent() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem>Edit name</DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => openEditSheet(campaign)}
+                          >
+                            Edit
+                          </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem className="text-danger focus:text-danger">
                             Delete
@@ -142,6 +154,15 @@ export function CampaignsPageContent() {
         onOpenChange={setSheetOpen}
         onCreated={() => {
           setLoading(false);
+          void loadCampaigns();
+        }}
+      />
+
+      <EditCampaignSheet
+        campaign={editCampaign}
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        onUpdated={() => {
           void loadCampaigns();
         }}
       />

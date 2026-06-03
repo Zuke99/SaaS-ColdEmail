@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
+import { updateCampaignSchema } from "@/lib/validators/campaign";
 import { createClient } from "@/lib/supabase/server";
 
 type RouteContext = { params: { id: string } };
@@ -27,6 +29,42 @@ export async function GET(_request: Request, { params }: RouteContext) {
   }
 
   return NextResponse.json({ ...campaign, contacts_count: count ?? 0 });
+}
+
+export async function PATCH(request: Request, { params }: RouteContext) {
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  const parsed = updateCampaignSchema.safeParse(body);
+  if (!parsed.success) {
+    const message = parsed.error.issues.map((i) => i.message).join("; ");
+    return NextResponse.json({ error: message }, { status: 400 });
+  }
+
+  const supabase = await createClient();
+  const { status, ...fields } = parsed.data;
+
+  const { data, error } = await supabase
+    .from("campaigns")
+    .update({
+      ...fields,
+      ...(status ? { status } : {}),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", params.id)
+    .select()
+    .single();
+
+  if (error) {
+    const httpStatus = error.code === "PGRST116" ? 404 : 500;
+    return NextResponse.json({ error: error.message }, { status: httpStatus });
+  }
+
+  return NextResponse.json(data);
 }
 
 export async function DELETE(_request: Request, { params }: RouteContext) {

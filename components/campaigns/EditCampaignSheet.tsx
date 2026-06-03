@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -15,22 +15,25 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import type { Campaign } from "@/lib/types/campaign";
 import {
   campaignFormSchema,
   type CampaignFormValues,
 } from "@/lib/validators/campaign";
 
-type CreateCampaignSheetProps = {
+type EditCampaignSheetProps = {
+  campaign: Campaign | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreated: () => void;
+  onUpdated: (campaign: Campaign) => void;
 };
 
-export function CreateCampaignSheet({
+export function EditCampaignSheet({
+  campaign,
   open,
   onOpenChange,
-  onCreated,
-}: CreateCampaignSheetProps) {
+  onUpdated,
+}: EditCampaignSheetProps) {
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const {
@@ -48,11 +51,24 @@ export function CreateCampaignSheet({
     },
   });
 
+  useEffect(() => {
+    if (campaign) {
+      reset({
+        name: campaign.name,
+        sender_name: campaign.sender_name,
+        sender_email: campaign.sender_email,
+        daily_limit: campaign.daily_limit,
+      });
+    }
+  }, [campaign, reset]);
+
   async function onSubmit(values: CampaignFormValues) {
+    if (!campaign) return;
+
     setSubmitError(null);
 
-    const res = await fetch("/api/campaigns", {
-      method: "POST",
+    const res = await fetch(`/api/campaigns/${campaign.id}`, {
+      method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(values),
     });
@@ -61,21 +77,27 @@ export function CreateCampaignSheet({
 
     if (!res.ok) {
       setSubmitError(
-        typeof data.error === "string" ? data.error : "Failed to create campaign"
+        typeof data.error === "string" ? data.error : "Failed to update campaign"
       );
       return;
     }
 
-    toast.success("Campaign created");
-    reset();
+    toast.success("Campaign updated");
     onOpenChange(false);
-    onCreated();
+    onUpdated(data as Campaign);
   }
 
   function handleOpenChange(next: boolean) {
     if (!next) {
       setSubmitError(null);
-      reset();
+      if (campaign) {
+        reset({
+          name: campaign.name,
+          sender_name: campaign.sender_name,
+          sender_email: campaign.sender_email,
+          daily_limit: campaign.daily_limit,
+        });
+      }
     }
     onOpenChange(next);
   }
@@ -84,9 +106,9 @@ export function CreateCampaignSheet({
     <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetContent className="flex flex-col sm:max-w-md">
         <SheetHeader>
-          <SheetTitle>New Campaign</SheetTitle>
+          <SheetTitle>Edit Campaign</SheetTitle>
           <SheetDescription>
-            Set up your campaign details
+            Update campaign name, sender details, and daily limit
           </SheetDescription>
         </SheetHeader>
 
@@ -95,9 +117,9 @@ export function CreateCampaignSheet({
           className="flex flex-1 flex-col gap-5 overflow-y-auto px-6 py-6"
         >
           <div className="space-y-2">
-            <Label htmlFor="name">Campaign name</Label>
+            <Label htmlFor="edit-name">Campaign name</Label>
             <Input
-              id="name"
+              id="edit-name"
               placeholder="e.g. YC Founders - Nov"
               {...register("name")}
             />
@@ -107,9 +129,9 @@ export function CreateCampaignSheet({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="sender_name">Sender name</Label>
+            <Label htmlFor="edit-sender_name">Sender name</Label>
             <Input
-              id="sender_name"
+              id="edit-sender_name"
               placeholder="Your name"
               {...register("sender_name")}
             />
@@ -119,11 +141,11 @@ export function CreateCampaignSheet({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="sender_email">Sender email</Label>
+            <Label htmlFor="edit-sender_email">Sender email</Label>
             <Input
-              id="sender_email"
+              id="edit-sender_email"
               type="email"
-              placeholder="you@yourdomain.com"
+              placeholder="onboarding@resend.dev"
               {...register("sender_email")}
             />
             {errors.sender_email ? (
@@ -131,12 +153,19 @@ export function CreateCampaignSheet({
                 {errors.sender_email.message}
               </p>
             ) : null}
+            <p className="text-xs text-muted">
+              Use a verified domain in Resend, or{" "}
+              <span className="font-mono text-foreground/80">
+                onboarding@resend.dev
+              </span>{" "}
+              for testing
+            </p>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="daily_limit">Daily send limit</Label>
+            <Label htmlFor="edit-daily_limit">Daily send limit</Label>
             <Input
-              id="daily_limit"
+              id="edit-daily_limit"
               type="number"
               min={1}
               max={100}
@@ -154,12 +183,8 @@ export function CreateCampaignSheet({
           ) : null}
 
           <SheetFooter className="mt-auto border-0 p-0">
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? "Creating…" : "Create Campaign"}
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting ? "Saving…" : "Save Changes"}
             </Button>
           </SheetFooter>
         </form>

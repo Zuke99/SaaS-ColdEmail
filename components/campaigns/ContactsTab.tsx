@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
@@ -14,6 +14,7 @@ import {
 import { ContactStatusBadge } from "@/components/campaigns/ContactStatusBadge";
 import { ImportCsvDialog } from "@/components/campaigns/ImportCsvDialog";
 import type { Contact } from "@/lib/types/contact";
+import { cn } from "@/lib/utils";
 
 type ContactsTabProps = {
   campaignId: string;
@@ -24,6 +25,8 @@ export function ContactsTab({ campaignId }: ContactsTabProps) {
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [sending, setSending] = useState(false);
 
   const loadContacts = useCallback(async () => {
     setFetchError(null);
@@ -44,6 +47,35 @@ export function ContactsTab({ campaignId }: ContactsTabProps) {
   useEffect(() => {
     loadContacts().finally(() => setLoading(false));
   }, [loadContacts]);
+
+  const selectableContacts = useMemo(
+    () => contacts.filter((contact) => contact.status === "not_started"),
+    [contacts]
+  );
+
+  const allSelectableSelected =
+    selectableContacts.length > 0 &&
+    selectableContacts.every((contact) => selectedIds.has(contact.id));
+
+  function toggleContact(contactId: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(contactId)) {
+        next.delete(contactId);
+      } else {
+        next.add(contactId);
+      }
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    if (allSelectableSelected) {
+      setSelectedIds(new Set());
+      return;
+    }
+    setSelectedIds(new Set(selectableContacts.map((contact) => contact.id)));
+  }
 
   async function updateStatus(contactId: string, status: "replied" | "bounced") {
     const res = await fetch(
@@ -84,6 +116,38 @@ export function ContactsTab({ campaignId }: ContactsTabProps) {
     }
 
     toast.success("Contact removed");
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.delete(contactId);
+      return next;
+    });
+    void loadContacts();
+  }
+
+  async function handleSendInitialEmail() {
+    if (selectedIds.size === 0) return;
+
+    setSending(true);
+    const res = await fetch(`/api/campaigns/${campaignId}/send`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contactIds: Array.from(selectedIds) }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setSending(false);
+
+    if (!res.ok) {
+      toast.error(
+        typeof data.error === "string" ? data.error : "Failed to send emails"
+      );
+      return;
+    }
+
+    const sent = data.sent ?? 0;
+    const failed = data.failed ?? 0;
+
+    toast.success(`Sent ${sent} emails, ${failed} failed`);
+    setSelectedIds(new Set());
     void loadContacts();
   }
 
@@ -98,6 +162,18 @@ export function ContactsTab({ campaignId }: ContactsTabProps) {
           Import CSV
         </Button>
       </div>
+
+      {selectedIds.size > 0 ? (
+        <div className="mb-4 flex flex-col gap-3 rounded-lg border border-border bg-surface px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-foreground">
+            {selectedIds.size}{" "}
+            {selectedIds.size === 1 ? "contact" : "contacts"} selected
+          </p>
+          <Button size="sm" disabled={sending} onClick={handleSendInitialEmail}>
+            {sending ? "Sending…" : "Send Initial Email"}
+          </Button>
+        </div>
+      ) : null}
 
       {loading ? (
         <p className="text-sm text-muted">Loading contacts…</p>
@@ -122,9 +198,19 @@ export function ContactsTab({ campaignId }: ContactsTabProps) {
         </div>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-border">
-          <table className="w-full min-w-[640px] text-left text-sm">
+          <table className="w-full min-w-[720px] text-left text-sm">
             <thead>
               <tr className="border-b border-border bg-surface/80">
+                <th className="w-10 px-4 py-3">
+                  <input
+                    type="checkbox"
+                    checked={allSelectableSelected}
+                    onChange={toggleSelectAll}
+                    disabled={selectableContacts.length === 0}
+                    aria-label="Select all contacts"
+                    className="h-4 w-4 rounded border-border bg-background accent-foreground disabled:opacity-40"
+                  />
+                </th>
                 <th className="px-4 py-3 font-medium text-muted">Name</th>
                 <th className="px-4 py-3 font-medium text-muted">Email</th>
                 <th className="px-4 py-3 font-medium text-muted">Status</th>
@@ -135,61 +221,95 @@ export function ContactsTab({ campaignId }: ContactsTabProps) {
               </tr>
             </thead>
             <tbody>
-              {contacts.map((contact) => (
-                <tr
-                  key={contact.id}
-                  className="border-b border-border last:border-0"
-                >
-                  <td className="px-4 py-3 text-foreground">
-                    {contact.name || "—"}
-                  </td>
-                  <td className="px-4 py-3 text-muted">{contact.email}</td>
-                  <td className="px-4 py-3">
-                    <ContactStatusBadge status={contact.status} />
-                  </td>
-                  <td className="px-4 py-3 text-muted">
-                    {formatDistanceToNow(new Date(contact.created_at), {
-                      addSuffix: true,
-                    })}
-                  </td>
-                  <td className="px-4 py-3">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-muted"
-                          aria-label="Contact actions"
-                        >
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onClick={() =>
-                            updateStatus(contact.id, "replied")
-                          }
-                        >
-                          Mark as Replied
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() =>
-                            updateStatus(contact.id, "bounced")
-                          }
-                        >
-                          Mark as Bounced
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="text-danger focus:text-danger"
-                          onClick={() => removeContact(contact.id)}
-                        >
-                          Remove
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </td>
-                </tr>
-              ))}
+              {contacts.map((contact) => {
+                const selectable = contact.status === "not_started";
+
+                return (
+                  <tr
+                    key={contact.id}
+                    className="border-b border-border last:border-0"
+                  >
+                    <td className="px-4 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(contact.id)}
+                        onChange={() => toggleContact(contact.id)}
+                        disabled={!selectable}
+                        aria-label={`Select ${contact.email}`}
+                        className={cn(
+                          "h-4 w-4 rounded border-border bg-background accent-foreground disabled:cursor-not-allowed disabled:opacity-40",
+                          !selectable && "opacity-40"
+                        )}
+                      />
+                    </td>
+                    <td
+                      className={cn(
+                        "px-4 py-3 text-foreground",
+                        !selectable && "opacity-60"
+                      )}
+                    >
+                      {contact.name || "—"}
+                    </td>
+                    <td
+                      className={cn(
+                        "px-4 py-3 text-muted",
+                        !selectable && "opacity-60"
+                      )}
+                    >
+                      {contact.email}
+                    </td>
+                    <td className="px-4 py-3">
+                      <ContactStatusBadge status={contact.status} />
+                    </td>
+                    <td
+                      className={cn(
+                        "px-4 py-3 text-muted",
+                        !selectable && "opacity-60"
+                      )}
+                    >
+                      {formatDistanceToNow(new Date(contact.created_at), {
+                        addSuffix: true,
+                      })}
+                    </td>
+                    <td className="px-4 py-3">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted"
+                            aria-label="Contact actions"
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() =>
+                              updateStatus(contact.id, "replied")
+                            }
+                          >
+                            Mark as Replied
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() =>
+                              updateStatus(contact.id, "bounced")
+                            }
+                          >
+                            Mark as Bounced
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-danger focus:text-danger"
+                            onClick={() => removeContact(contact.id)}
+                          >
+                            Remove
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
