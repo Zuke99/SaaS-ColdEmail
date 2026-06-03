@@ -14,6 +14,7 @@
 - ALWAYS use getTable() from lib/supabase/schema for table names
 - Use server client in server components, actions, and API routes
 - Use browser client in client components only
+- always use the schema which you are getting from env
 
 # General
 - All secrets are server-only — never import server env vars in client components

@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { GeistMono } from "geist/font/mono";
+import { GeistSans } from "geist/font/sans";
+import { LayoutShell } from "@/components/app/LayoutShell";
+import { Toaster } from "sonner";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"] });
-
 export const metadata: Metadata = {
-  title: "SaaS Boilerplate",
-  description: "Plug-and-play SaaS authentication boilerplate",
+  title: "Coldflow",
+  description: "Cold email outreach",
 };
 
 export default function RootLayout({
@@ -15,8 +16,22 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={`${inter.className} antialiased`}>{children}</body>
+    <html
+      lang="en"
+      className={`dark ${GeistSans.variable} ${GeistMono.variable}`}
+    >
+      <body className={`${GeistSans.className} antialiased`}>
+        <LayoutShell>{children}</LayoutShell>
+        <Toaster
+          theme="dark"
+          toastOptions={{
+            classNames: {
+              toast:
+                "bg-surface border-border text-foreground",
+            },
+          }}
+        />
+      </body>
     </html>
   );
 }
