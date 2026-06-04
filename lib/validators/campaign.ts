@@ -13,8 +13,17 @@ export const campaignFormSchema = z.object({
 
 export type CampaignFormValues = z.infer<typeof campaignFormSchema>;
 
+export const updateCampaignStatusSchema = z.object({
+  status: z.enum(["draft", "active", "paused"]),
+});
+
 export const updateCampaignSchema = campaignFormSchema.extend({
   status: z.enum(["draft", "active", "paused"]).optional(),
 });
+
+export const patchCampaignSchema = z.union([
+  updateCampaignStatusSchema,
+  updateCampaignSchema,
+]);
 
 export type UpdateCampaignInput = z.infer<typeof updateCampaignSchema>;

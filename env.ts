@@ -24,6 +24,8 @@ export const env = createEnv({
     EMAIL_REPLY_TO: z.string().email().optional(),
 
     POSTHOG_API_KEY: z.string().optional(),
+
+    CRON_SECRET: z.string().optional(),
   },
 
   client: {
@@ -62,6 +64,8 @@ export const env = createEnv({
     EMAIL_REPLY_TO: process.env.EMAIL_REPLY_TO,
 
     POSTHOG_API_KEY: process.env.POSTHOG_API_KEY,
+
+    CRON_SECRET: process.env.CRON_SECRET,
 
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,

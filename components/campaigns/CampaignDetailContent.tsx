@@ -3,9 +3,12 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Pencil } from "lucide-react";
-import { CampaignStatusBadge } from "@/components/campaigns/CampaignStatusBadge";
+import { CampaignCronDevTools } from "@/components/campaigns/CampaignCronDevTools";
+import { CampaignStatsStrip } from "@/components/campaigns/CampaignStatsStrip";
+import { CampaignStatusControls } from "@/components/campaigns/CampaignStatusControls";
 import { ContactsTab } from "@/components/campaigns/ContactsTab";
 import { EditCampaignSheet } from "@/components/campaigns/EditCampaignSheet";
+import { SentLogTab } from "@/components/campaigns/SentLogTab";
 import { SequenceTab } from "@/components/campaigns/SequenceTab";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -92,7 +95,14 @@ export function CampaignDetailContent({
             <Pencil className="mr-2 h-4 w-4" />
             Edit
           </Button>
-          <CampaignStatusBadge status={campaign.status} />
+          <CampaignStatusControls
+            campaign={campaign}
+            onUpdated={(updated) => {
+              setCampaign((prev) =>
+                prev ? { ...prev, ...updated } : prev
+              );
+            }}
+          />
         </div>
       </header>
 
@@ -100,18 +110,19 @@ export function CampaignDetailContent({
         campaign={campaign}
         open={editOpen}
         onOpenChange={setEditOpen}
-        onUpdated={(updated) => {
-          setCampaign((prev) =>
-            prev ? { ...prev, ...updated, contacts_count: prev.contacts_count } : prev
-          );
+        onUpdated={() => {
+          void loadCampaign();
         }}
       />
+
+      {campaign.stats ? <CampaignStatsStrip stats={campaign.stats} /> : null}
 
       <div className="flex-1 px-4 py-4 sm:px-6 sm:py-6">
         <Tabs defaultValue="contacts" className="w-full">
           <TabsList>
             <TabsTrigger value="contacts">Contacts</TabsTrigger>
             <TabsTrigger value="sequence">Sequence</TabsTrigger>
+            <TabsTrigger value="sent-log">Sent Log</TabsTrigger>
           </TabsList>
 
           <TabsContent value="contacts">
@@ -121,7 +132,15 @@ export function CampaignDetailContent({
           <TabsContent value="sequence">
             <SequenceTab campaignId={campaignId} />
           </TabsContent>
+
+          <TabsContent value="sent-log">
+            <SentLogTab campaignId={campaignId} />
+          </TabsContent>
         </Tabs>
+
+        {process.env.NODE_ENV === "development" ? (
+          <CampaignCronDevTools />
+        ) : null}
       </div>
     </div>
   );

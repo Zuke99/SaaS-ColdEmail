@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { updateCampaignSchema } from "@/lib/validators/campaign";
+import { patchCampaignSchema } from "@/lib/validators/campaign";
 import { createClient } from "@/lib/supabase/server";
 
 type RouteContext = { params: { id: string } };
@@ -19,16 +19,55 @@ export async function GET(_request: Request, { params }: RouteContext) {
     return NextResponse.json({ error: error.message }, { status });
   }
 
-  const { count, error: countError } = await supabase
-    .from("contacts")
-    .select("*", { count: "exact", head: true })
-    .eq("campaign_id", params.id);
+  const [
+    { count: totalContacts, error: totalContactsError },
+    { count: sentContacts, error: sentContactsError },
+    { count: repliedContacts, error: repliedContactsError },
+    { count: openedLogs, error: openedLogsError },
+  ] = await Promise.all([
+    supabase
+      .from("contacts")
+      .select("*", { count: "exact", head: true })
+      .eq("campaign_id", params.id),
+    supabase
+      .from("contacts")
+      .select("*", { count: "exact", head: true })
+      .eq("campaign_id", params.id)
+      .neq("status", "not_started"),
+    supabase
+      .from("contacts")
+      .select("*", { count: "exact", head: true })
+      .eq("campaign_id", params.id)
+      .eq("status", "replied"),
+    supabase
+      .from("send_log")
+      .select("*", { count: "exact", head: true })
+      .eq("campaign_id", params.id)
+      .not("opened_at", "is", null),
+  ]);
 
-  if (countError) {
-    return NextResponse.json({ error: countError.message }, { status: 500 });
+  const statsError =
+    totalContactsError ??
+    sentContactsError ??
+    repliedContactsError ??
+    openedLogsError;
+
+  if (statsError) {
+    return NextResponse.json({ error: statsError.message }, { status: 500 });
   }
 
-  return NextResponse.json({ ...campaign, contacts_count: count ?? 0 });
+  const total_contacts = totalContacts ?? 0;
+
+  return NextResponse.json({
+    ...campaign,
+    contacts_count: total_contacts,
+    stats: {
+      total_contacts,
+      sent: sentContacts ?? 0,
+      opened: openedLogs ?? 0,
+      replied: repliedContacts ?? 0,
+    },
+  });
 }
 
 export async function PATCH(request: Request, { params }: RouteContext) {
@@ -39,22 +78,21 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const parsed = updateCampaignSchema.safeParse(body);
+  const parsed = patchCampaignSchema.safeParse(body);
   if (!parsed.success) {
     const message = parsed.error.issues.map((i) => i.message).join("; ");
     return NextResponse.json({ error: message }, { status: 400 });
   }
 
   const supabase = await createClient();
-  const { status, ...fields } = parsed.data;
+  const updatePayload =
+    "name" in parsed.data
+      ? { ...parsed.data, updated_at: new Date().toISOString() }
+      : { status: parsed.data.status, updated_at: new Date().toISOString() };
 
   const { data, error } = await supabase
     .from("campaigns")
-    .update({
-      ...fields,
-      ...(status ? { status } : {}),
-      updated_at: new Date().toISOString(),
-    })
+    .update(updatePayload)
     .eq("id", params.id)
     .select()
     .single();

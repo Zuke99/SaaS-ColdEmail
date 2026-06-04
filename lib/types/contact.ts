@@ -18,6 +18,13 @@ export type Contact = {
 
 import type { CampaignStatus } from "@/lib/types/campaign";
 
+export type CampaignStats = {
+  total_contacts: number;
+  sent: number;
+  opened: number;
+  replied: number;
+};
+
 export type CampaignWithCounts = {
   id: string;
   name: string;
@@ -29,4 +36,5 @@ export type CampaignWithCounts = {
   created_at: string;
   updated_at: string;
   contacts_count: number;
+  stats: CampaignStats;
 };
