@@ -26,6 +26,10 @@ export const env = createEnv({
     POSTHOG_API_KEY: z.string().optional(),
 
     CRON_SECRET: z.string().optional(),
+
+    GMAIL_CLIENT_ID: z.string().min(1).optional(),
+    GMAIL_CLIENT_SECRET: z.string().min(1).optional(),
+    GMAIL_REDIRECT_URI: z.string().url().optional(),
   },
 
   client: {
@@ -66,6 +70,9 @@ export const env = createEnv({
     POSTHOG_API_KEY: process.env.POSTHOG_API_KEY,
 
     CRON_SECRET: process.env.CRON_SECRET,
+    GMAIL_CLIENT_ID: process.env.GMAIL_CLIENT_ID,
+    GMAIL_CLIENT_SECRET: process.env.GMAIL_CLIENT_SECRET,
+    GMAIL_REDIRECT_URI: process.env.GMAIL_REDIRECT_URI,
 
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,

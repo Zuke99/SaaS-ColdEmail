@@ -54,6 +54,7 @@ export function CreateCampaignSheet({
     const res = await fetch("/api/campaigns", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify(values),
     });
 

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthedCampaignContext } from "@/lib/api/campaign-route";
 
 type RouteContext = { params: { id: string } };
 
@@ -16,7 +16,9 @@ const importContactsSchema = z.object({
 });
 
 export async function GET(_request: Request, { params }: RouteContext) {
-  const supabase = await createClient();
+  const ctx = await getAuthedCampaignContext(params.id);
+  if ("response" in ctx) return ctx.response;
+  const { supabase } = ctx;
 
   const { data, error } = await supabase
     .from("contacts")
@@ -45,7 +47,9 @@ export async function POST(request: Request, { params }: RouteContext) {
     return NextResponse.json({ error: message }, { status: 400 });
   }
 
-  const supabase = await createClient();
+  const ctx = await getAuthedCampaignContext(params.id);
+  if ("response" in ctx) return ctx.response;
+  const { supabase } = ctx;
 
   const { data: existing, error: existingError } = await supabase
     .from("contacts")

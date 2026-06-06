@@ -1,9 +1,9 @@
-import { env } from "@/env";
+import { appUrl } from "@/lib/app-url";
 import type { MetadataRoute } from "next";
 
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: { userAgent: "*", allow: "/" },
-    sitemap: `${env.NEXT_PUBLIC_APP_URL}/sitemap.xml`,
+    sitemap: appUrl("/sitemap.xml"),
   };
 }

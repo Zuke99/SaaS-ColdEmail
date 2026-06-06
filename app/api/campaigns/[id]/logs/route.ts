@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthedCampaignContext } from "@/lib/api/campaign-route";
 import type { SendLogEntry } from "@/lib/types/send-log";
 
 type RouteContext = { params: { id: string } };
@@ -13,7 +13,9 @@ function getContactFromRow(
 }
 
 export async function GET(_request: Request, { params }: RouteContext) {
-  const supabase = await createClient();
+  const ctx = await getAuthedCampaignContext(params.id);
+  if ("response" in ctx) return ctx.response;
+  const { supabase } = ctx;
 
   const { data, error } = await supabase
     .from("send_log")

@@ -1,17 +1,22 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { handleAuthError } from "@/lib/api/auth-response";
+import { getAuthedClient } from "@/lib/api/with-auth";
 import { patchCampaignSchema } from "@/lib/validators/campaign";
-import { createClient } from "@/lib/supabase/server";
+import { assertCampaignAccess } from "@/lib/supabase/user-db";
 
 type RouteContext = { params: { id: string } };
 
 export async function GET(_request: Request, { params }: RouteContext) {
-  const supabase = await createClient();
+  const auth = await getAuthedClient();
+  if (auth instanceof Response) return auth;
+  const { supabase, user } = auth;
 
   const { data: campaign, error } = await supabase
     .from("campaigns")
     .select("*")
     .eq("id", params.id)
+    .eq("user_id", user.id)
     .single();
 
   if (error) {
@@ -84,7 +89,18 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     return NextResponse.json({ error: message }, { status: 400 });
   }
 
-  const supabase = await createClient();
+  const auth = await getAuthedClient();
+  if (auth instanceof Response) return auth;
+  const { supabase, user } = auth;
+
+  try {
+    await assertCampaignAccess(supabase, user.id, params.id);
+  } catch (err) {
+    const res = handleAuthError(err);
+    if (res) return res;
+    throw err;
+  }
+
   const updatePayload =
     "name" in parsed.data
       ? { ...parsed.data, updated_at: new Date().toISOString() }
@@ -94,6 +110,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     .from("campaigns")
     .update(updatePayload)
     .eq("id", params.id)
+    .eq("user_id", user.id)
     .select()
     .single();
 
@@ -106,12 +123,15 @@ export async function PATCH(request: Request, { params }: RouteContext) {
 }
 
 export async function DELETE(_request: Request, { params }: RouteContext) {
-  const supabase = await createClient();
+  const auth = await getAuthedClient();
+  if (auth instanceof Response) return auth;
+  const { supabase, user } = auth;
 
   const { error } = await supabase
     .from("campaigns")
     .delete()
-    .eq("id", params.id);
+    .eq("id", params.id)
+    .eq("user_id", user.id);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

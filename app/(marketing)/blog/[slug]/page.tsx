@@ -11,6 +11,7 @@ import {
   getAllPosts,
   getPostBySlug,
 } from "@/lib/blog";
+import { appUrl } from "@/lib/app-url";
 import { env } from "@/env";
 
 type BlogPostPageProps = {
@@ -24,7 +25,7 @@ export function generateStaticParams() {
 
 export function generateMetadata({ params }: BlogPostPageProps): Metadata {
   const { frontmatter } = getPostBySlug(params.slug);
-  const url = `${env.NEXT_PUBLIC_APP_URL}/blog/${params.slug}`;
+  const url = appUrl(`/blog/${params.slug}`);
 
   return {
     title: frontmatter.title,
@@ -56,7 +57,7 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
 
   const { frontmatter, content } = getPostBySlug(params.slug);
   const { previous, next } = getAdjacentPosts(params.slug);
-  const url = `${env.NEXT_PUBLIC_APP_URL}/blog/${params.slug}`;
+  const url = appUrl(`/blog/${params.slug}`);
 
   const jsonLd = {
     "@context": "https://schema.org",

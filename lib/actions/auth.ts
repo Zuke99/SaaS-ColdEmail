@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { env } from "@/env";
+import { appUrl } from "@/lib/app-url";
 import { sendWelcomeEmail } from "@/lib/actions/email";
 import { getFirstName } from "@/lib/email/utils";
 import { ensureUserProfile } from "@/lib/supabase/profile";
@@ -79,7 +79,7 @@ export async function signInWithGoogle() {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: `${env.NEXT_PUBLIC_APP_URL}/auth/callback`,
+      redirectTo: appUrl("/auth/callback"),
     },
   });
 

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FEATURES } from "@/config/features";
 import { BlogPostCard } from "@/components/blog/BlogPostCard";
+import { appUrl } from "@/lib/app-url";
 import { getAllPosts, getAllTags } from "@/lib/blog";
 import { env } from "@/env";
 
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
     title: `Blog — ${env.NEXT_PUBLIC_APP_NAME}`,
     description: `Tips, guides and strategies from the ${env.NEXT_PUBLIC_APP_NAME} team`,
     type: "website",
-    url: `${env.NEXT_PUBLIC_APP_URL}/blog`,
+    url: appUrl("/blog"),
   },
   twitter: {
     card: "summary_large_image",

@@ -2,6 +2,7 @@ export type CampaignStatus = "draft" | "active" | "paused";
 
 export type Campaign = {
   id: string;
+  user_id: string;
   name: string;
   status: CampaignStatus;
   daily_limit: number;

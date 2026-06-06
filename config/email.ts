@@ -1,5 +1,6 @@
 import { FEATURES } from "@/config/features";
 import { env } from "@/env";
+import { appUrl } from "@/lib/app-url";
 
 export type EmailConfig = {
   appName: string;
@@ -19,11 +20,11 @@ export const EMAIL_CONFIG: EmailConfig | null = FEATURES.email
       from: env.EMAIL_FROM!,
       replyTo: env.EMAIL_REPLY_TO!,
       logoUrl: env.NEXT_PUBLIC_APP_LOGO_URL ?? "",
-      dashboardUrl: `${env.NEXT_PUBLIC_APP_URL}/dashboard`,
-      pricingUrl: `${env.NEXT_PUBLIC_APP_URL}/pricing`,
-      supportUrl: `${env.NEXT_PUBLIC_APP_URL}/support`,
-      privacyUrl: `${env.NEXT_PUBLIC_APP_URL}/privacy`,
-      unsubscribeUrl: `${env.NEXT_PUBLIC_APP_URL}/unsubscribe`,
+      dashboardUrl: appUrl("/dashboard"),
+      pricingUrl: appUrl("/pricing"),
+      supportUrl: appUrl("/support"),
+      privacyUrl: appUrl("/privacy"),
+      unsubscribeUrl: appUrl("/unsubscribe"),
     }
   : null;
 

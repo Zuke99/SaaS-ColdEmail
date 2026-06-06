@@ -16,10 +16,23 @@
 
 ---
 
-## NEXT_PUBLIC_APP_URL
+## App base URL (`NEXT_PUBLIC_APP_URL`)
+
+One variable drives every absolute URL in the app. Use `getAppBaseUrl()` / `appUrl()` from `@/lib/app-url` in code — do not concatenate `env.NEXT_PUBLIC_APP_URL` manually.
+
+| Use case | Example |
+|----------|---------|
+| Production deploy | `https://your-app.vercel.app` |
+| Local dev (default) | `http://localhost:3000` |
+| Local dev + real email opens | Set to your ngrok URL, e.g. `https://abc.ngrok-free.app` |
+
+Gmail loads tracking images from **Google’s servers**, not your laptop — `localhost` in emails will not record opens unless you use a public URL (tunnel or deploy).
+
+In development, manual sends from the UI can use the request `Host` port when still on localhost (e.g. 3001 if 3000 is busy).
+
 **What:** Full URL of your app. No trailing slash.
 **Local:** `http://localhost:3000`
-**Production:** `https://your-app.onrender.com`
+**Production:** `https://your-app.vercel.app` (or your host)
 
 ---
 

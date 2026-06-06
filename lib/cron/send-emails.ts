@@ -4,7 +4,7 @@ import {
   stripInternalCustomVars,
 } from "@/lib/sequence/variables";
 import { randomSendDelayMs, sleep, todayDateString } from "@/lib/cron/dates";
-import { renderTemplate, sendEmail } from "@/lib/resend";
+import { renderTemplate, sendGmailEmail } from "@/lib/gmail";
 import { createCronClient } from "@/lib/supabase/cron";
 
 type SequenceStepRow = {
@@ -32,7 +32,7 @@ export async function runSendEmails(): Promise<{
 
   const { data: campaigns, error: campaignsError } = await supabase
     .from("campaigns")
-    .select("id, sender_name, sender_email, daily_limit")
+    .select("id, sender_name, sender_email, daily_limit, user_id")
     .eq("status", "active");
 
   if (campaignsError) {
@@ -40,7 +40,11 @@ export async function runSendEmails(): Promise<{
   }
 
   for (const campaign of campaigns ?? []) {
-    if (!campaign.sender_email?.trim() || !campaign.sender_name?.trim()) {
+    if (
+      !campaign.user_id ||
+      !campaign.sender_email?.trim() ||
+      !campaign.sender_name?.trim()
+    ) {
       skipped++;
       continue;
     }
@@ -142,14 +146,48 @@ export async function runSendEmails(): Promise<{
 
       const now = new Date().toISOString();
 
+      if (!row.tracking_pixel_id) {
+        skipped++;
+        continue;
+      }
+
+      let inReplyTo: string | undefined;
+      let references: string | undefined;
+      let gmailThreadId: string | undefined;
+
+      if (row.step_number > 1) {
+        const { data: step1Log } = await supabase
+          .from("send_log")
+          .select("gmail_message_id, gmail_thread_id")
+          .eq("contact_id", contact.id)
+          .eq("step_number", 1)
+          .eq("status", "sent")
+          .limit(1)
+          .maybeSingle();
+
+        if (step1Log?.gmail_message_id) {
+          inReplyTo = step1Log.gmail_message_id;
+          references = step1Log.gmail_message_id;
+        }
+        if (step1Log?.gmail_thread_id) {
+          gmailThreadId = step1Log.gmail_thread_id;
+        }
+      }
+
       try {
-        await sendEmail({
+        const { messageId, threadId } = await sendGmailEmail({
+          userId: campaign.user_id,
           to: contact.email,
           toName: contact.name ?? undefined,
           subject: renderedSubject,
           body: renderedBody,
           senderEmail: campaign.sender_email,
           senderName: campaign.sender_name,
+          trackingPixelId: row.tracking_pixel_id,
+          contactId: contact.id,
+          inReplyTo,
+          references,
+          gmailThreadId,
         });
 
         await supabase
@@ -159,6 +197,8 @@ export async function runSendEmails(): Promise<{
             sent_at: now,
             subject: renderedSubject,
             body: renderedBody,
+            gmail_message_id: messageId,
+            gmail_thread_id: threadId,
           })
           .eq("id", row.id);
 

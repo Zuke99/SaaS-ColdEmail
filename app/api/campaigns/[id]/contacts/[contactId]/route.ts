@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
+import { handleAuthError } from "@/lib/api/auth-response";
+import { getAuthedClient } from "@/lib/api/with-auth";
+import { assertCampaignAccess } from "@/lib/supabase/user-db";
 
 type RouteContext = { params: { id: string; contactId: string } };
 
@@ -29,7 +31,17 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     return NextResponse.json({ error: message }, { status: 400 });
   }
 
-  const supabase = await createClient();
+  const auth = await getAuthedClient();
+  if (auth instanceof Response) return auth;
+  const { supabase, user } = auth;
+
+  try {
+    await assertCampaignAccess(supabase, user.id, params.id);
+  } catch (err) {
+    const res = handleAuthError(err);
+    if (res) return res;
+    throw err;
+  }
 
   const { data, error } = await supabase
     .from("contacts")
@@ -48,7 +60,17 @@ export async function PATCH(request: Request, { params }: RouteContext) {
 }
 
 export async function DELETE(_request: Request, { params }: RouteContext) {
-  const supabase = await createClient();
+  const auth = await getAuthedClient();
+  if (auth instanceof Response) return auth;
+  const { supabase, user } = auth;
+
+  try {
+    await assertCampaignAccess(supabase, user.id, params.id);
+  } catch (err) {
+    const res = handleAuthError(err);
+    if (res) return res;
+    throw err;
+  }
 
   const { error } = await supabase
     .from("contacts")

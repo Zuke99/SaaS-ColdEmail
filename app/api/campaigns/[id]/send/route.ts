@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { stripInternalCustomVars } from "@/lib/sequence/variables";
-import { renderTemplate, sendEmail } from "@/lib/resend";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthedCampaignContext } from "@/lib/api/campaign-route";
+import { renderTemplate, sendGmailEmail } from "@/lib/gmail";
 
 type RouteContext = { params: { id: string } };
 
@@ -32,12 +32,15 @@ export async function POST(request: Request, { params }: RouteContext) {
     return NextResponse.json({ error: message }, { status: 400 });
   }
 
-  const supabase = await createClient();
+  const ctx = await getAuthedCampaignContext(params.id);
+  if ("response" in ctx) return ctx.response;
+  const { supabase, user } = ctx;
 
   const { data: campaign, error: campaignError } = await supabase
     .from("campaigns")
     .select("id, sender_name, sender_email, daily_limit")
     .eq("id", params.id)
+    .eq("user_id", user.id)
     .single();
 
   if (campaignError) {
@@ -112,26 +115,54 @@ export async function POST(request: Request, { params }: RouteContext) {
       customVars
     );
 
+    const { data: logRow, error: insertError } = await supabase
+      .from("send_log")
+      .insert({
+        campaign_id: params.id,
+        contact_id: contact.id,
+        step_number: 1,
+        subject: renderedSubject,
+        body: renderedBody,
+        status: "pending",
+        scheduled_for: scheduledFor,
+      })
+      .select("id, tracking_pixel_id")
+      .single();
+
+    if (insertError || !logRow?.tracking_pixel_id) {
+      failed++;
+      continue;
+    }
+
     try {
-      await sendEmail({
+      console.log("[Send] sendGmailEmail payload", {
+        tracking_pixel_id: logRow.tracking_pixel_id,
+        contact_id: contact.id,
+        send_log_id: logRow.id,
+      });
+
+      const { messageId, threadId } = await sendGmailEmail({
+        userId: user.id,
         to: contact.email,
         toName: contact.name ?? undefined,
         subject: renderedSubject,
         body: renderedBody,
         senderEmail: campaign.sender_email,
         senderName: campaign.sender_name,
+        trackingPixelId: logRow.tracking_pixel_id,
+        contactId: contact.id,
+        request,
       });
 
-      await supabase.from("send_log").insert({
-        campaign_id: params.id,
-        contact_id: contact.id,
-        step_number: 1,
-        subject: renderedSubject,
-        body: renderedBody,
-        status: "sent",
-        scheduled_for: scheduledFor,
-        sent_at: now,
-      });
+      await supabase
+        .from("send_log")
+        .update({
+          status: "sent",
+          sent_at: now,
+          gmail_message_id: messageId,
+          gmail_thread_id: threadId,
+        })
+        .eq("id", logRow.id);
 
       await supabase
         .from("contacts")
@@ -143,16 +174,13 @@ export async function POST(request: Request, { params }: RouteContext) {
       const errorMessage =
         err instanceof Error ? err.message : "Failed to send email";
 
-      await supabase.from("send_log").insert({
-        campaign_id: params.id,
-        contact_id: contact.id,
-        step_number: 1,
-        subject: renderedSubject,
-        body: renderedBody,
-        status: "failed",
-        scheduled_for: scheduledFor,
-        error_message: errorMessage,
-      });
+      await supabase
+        .from("send_log")
+        .update({
+          status: "failed",
+          error_message: errorMessage,
+        })
+        .eq("id", logRow.id);
 
       failed++;
     }

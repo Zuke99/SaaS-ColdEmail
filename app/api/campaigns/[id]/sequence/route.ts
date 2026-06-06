@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthedCampaignContext } from "@/lib/api/campaign-route";
 
 type RouteContext = { params: { id: string } };
 
@@ -13,7 +13,9 @@ const createStepSchema = z.object({
 });
 
 export async function GET(_request: Request, { params }: RouteContext) {
-  const supabase = await createClient();
+  const ctx = await getAuthedCampaignContext(params.id);
+  if ("response" in ctx) return ctx.response;
+  const { supabase } = ctx;
 
   const { data, error } = await supabase
     .from("sequence_steps")
@@ -46,7 +48,9 @@ export async function POST(request: Request, { params }: RouteContext) {
   const delay_days =
     step_number === 1 ? 0 : Math.max(1, parsed.data.delay_days || 3);
 
-  const supabase = await createClient();
+  const ctx = await getAuthedCampaignContext(params.id);
+  if ("response" in ctx) return ctx.response;
+  const { supabase } = ctx;
 
   const { count, error: countError } = await supabase
     .from("sequence_steps")

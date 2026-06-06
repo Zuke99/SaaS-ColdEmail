@@ -1,10 +1,11 @@
 import { FEATURES } from "@/config/features";
+import { getAppBaseUrl } from "@/lib/app-url";
 import { getAllPosts } from "@/lib/blog";
 import { env } from "@/env";
 import type { MetadataRoute } from "next";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = env.NEXT_PUBLIC_APP_URL;
+  const baseUrl = getAppBaseUrl();
 
   const staticUrls: MetadataRoute.Sitemap = [
     {

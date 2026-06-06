@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthedCampaignContext } from "@/lib/api/campaign-route";
+import type { UserDbClient } from "@/lib/supabase/user-db";
 
 type RouteContext = { params: { id: string; stepId: string } };
 
@@ -11,8 +12,7 @@ const patchStepSchema = z.object({
   custom_vars: z.record(z.string(), z.string()).optional().default({}),
 });
 
-async function renumberSteps(campaignId: string) {
-  const supabase = await createClient();
+async function renumberSteps(supabase: UserDbClient, campaignId: string) {
 
   const { data: steps, error } = await supabase
     .from("sequence_steps")
@@ -55,7 +55,9 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     return NextResponse.json({ error: message }, { status: 400 });
   }
 
-  const supabase = await createClient();
+  const ctx = await getAuthedCampaignContext(params.id);
+  if ("response" in ctx) return ctx.response;
+  const { supabase } = ctx;
 
   const { data: existing, error: existingError } = await supabase
     .from("sequence_steps")
@@ -95,7 +97,9 @@ export async function PATCH(request: Request, { params }: RouteContext) {
 }
 
 export async function DELETE(_request: Request, { params }: RouteContext) {
-  const supabase = await createClient();
+  const ctx = await getAuthedCampaignContext(params.id);
+  if ("response" in ctx) return ctx.response;
+  const { supabase } = ctx;
 
   const { error } = await supabase
     .from("sequence_steps")
@@ -107,7 +111,7 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  await renumberSteps(params.id);
+  await renumberSteps(supabase, params.id);
 
   return NextResponse.json({ success: true });
 }

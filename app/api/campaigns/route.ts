@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthedClient } from "@/lib/api/with-auth";
 
 const createCampaignSchema = z.object({
   name: z.string().trim().min(1, "name is required"),
@@ -14,10 +14,14 @@ const createCampaignSchema = z.object({
 });
 
 export async function GET() {
-  const supabase = await createClient();
+  const auth = await getAuthedClient();
+  if (auth instanceof Response) return auth;
+  const { supabase, user } = auth;
+
   const { data, error } = await supabase
     .from("campaigns")
     .select("*")
+    .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -42,10 +46,19 @@ export async function POST(request: Request) {
   }
 
   const { name, sender_name, sender_email, daily_limit } = parsed.data;
-  const supabase = await createClient();
+  const auth = await getAuthedClient();
+  if (auth instanceof Response) return auth;
+  const { supabase, user } = auth;
+
   const { data, error } = await supabase
     .from("campaigns")
-    .insert({ name, sender_name, sender_email, daily_limit })
+    .insert({
+      name,
+      sender_name,
+      sender_email,
+      daily_limit,
+      user_id: user.id,
+    })
     .select()
     .single();
 

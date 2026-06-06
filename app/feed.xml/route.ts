@@ -1,4 +1,5 @@
 import { FEATURES } from "@/config/features";
+import { getAppBaseUrl } from "@/lib/app-url";
 import { getAllPosts } from "@/lib/blog";
 import { env } from "@/env";
 
@@ -17,7 +18,7 @@ export async function GET() {
   }
 
   const posts = getAllPosts();
-  const baseUrl = env.NEXT_PUBLIC_APP_URL;
+  const baseUrl = getAppBaseUrl();
   const appName = env.NEXT_PUBLIC_APP_NAME;
 
   const items = posts
