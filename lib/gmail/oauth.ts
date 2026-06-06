@@ -1,15 +1,16 @@
 import { env } from "@/env";
+import { appUrl } from "@/lib/app-url";
 
 export function requireGmailOAuthEnv() {
-  if (!env.GMAIL_CLIENT_ID || !env.GMAIL_CLIENT_SECRET || !env.GMAIL_REDIRECT_URI) {
+  if (!env.GMAIL_CLIENT_ID || !env.GMAIL_CLIENT_SECRET) {
     throw new Error(
-      "Gmail OAuth is not configured. Set GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, and GMAIL_REDIRECT_URI."
+      "Gmail OAuth is not configured. Set GMAIL_CLIENT_ID and GMAIL_CLIENT_SECRET."
     );
   }
   return {
     clientId: env.GMAIL_CLIENT_ID,
     clientSecret: env.GMAIL_CLIENT_SECRET,
-    redirectUri: env.GMAIL_REDIRECT_URI,
+    redirectUri: env.GMAIL_REDIRECT_URI ?? appUrl("/api/auth/gmail/callback"),
   };
 }
 
