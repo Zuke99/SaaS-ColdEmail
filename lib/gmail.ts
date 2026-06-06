@@ -162,7 +162,7 @@ export async function sendGmailEmail({
     subject,
     html: finalBody,
     headers: {
-      "List-Unsubscribe": `<mailto:unsubscribe@getfiginbox.com>, <${unsubUrl}>`,
+      "List-Unsubscribe": `<mailto:${connectedEmail}>, <${unsubUrl}>`,
       "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
     },
   };
