@@ -58,7 +58,7 @@ export function StepCard({
       <div className="flex items-start justify-between gap-3 border-b border-border px-4 py-3">
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm font-medium text-foreground">
-            Step {step.step_number}
+            {step.step_number === 1 ? "Initial Email" : `Follow-up ${step.step_number - 1}`}
           </span>
           {step.step_number > 1 ? (
             <span className="rounded-full bg-border px-2 py-0.5 text-xs font-mono text-muted">

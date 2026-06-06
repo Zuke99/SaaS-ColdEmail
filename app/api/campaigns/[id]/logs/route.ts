@@ -33,6 +33,7 @@ export async function GET(_request: Request, { params }: RouteContext) {
       error_message,
       tracking_pixel_id,
       opened_at,
+      sent_by_cron,
       created_at,
       contacts (
         name,
@@ -62,6 +63,7 @@ export async function GET(_request: Request, { params }: RouteContext) {
       error_message: row.error_message,
       tracking_pixel_id: row.tracking_pixel_id,
       opened_at: row.opened_at,
+      sent_by_cron: row.sent_by_cron ?? false,
       created_at: row.created_at,
       name: contact.name,
       email: contact.email,

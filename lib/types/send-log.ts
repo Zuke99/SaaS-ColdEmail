@@ -13,6 +13,7 @@ export type SendLogEntry = {
   error_message: string | null;
   tracking_pixel_id: string | null;
   opened_at: string | null;
+  sent_by_cron: boolean;
   created_at: string;
   name: string | null;
   email: string;

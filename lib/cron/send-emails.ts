@@ -54,7 +54,8 @@ export async function runSendEmails(): Promise<{
       .select("*", { count: "exact", head: true })
       .eq("campaign_id", campaign.id)
       .eq("scheduled_for", today)
-      .eq("status", "sent");
+      .eq("status", "sent")
+      .eq("sent_by_cron", true);
 
     if (countError) continue;
 
@@ -66,12 +67,14 @@ export async function runSendEmails(): Promise<{
 
     const remaining = campaign.daily_limit - sentToday;
 
+    // Use lte so overdue pending rows (scheduled_for in the past) are picked up
     const { data: pendingRows, error: pendingError } = await supabase
       .from("send_log")
       .select("*")
       .eq("campaign_id", campaign.id)
-      .eq("scheduled_for", today)
+      .lte("scheduled_for", today)
       .eq("status", "pending")
+      .order("scheduled_for", { ascending: true })
       .order("created_at", { ascending: true })
       .limit(remaining);
 
@@ -199,6 +202,7 @@ export async function runSendEmails(): Promise<{
             body: renderedBody,
             gmail_message_id: messageId,
             gmail_thread_id: threadId,
+            sent_by_cron: true,
           })
           .eq("id", row.id);
 

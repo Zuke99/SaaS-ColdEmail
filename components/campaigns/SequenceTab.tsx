@@ -115,7 +115,7 @@ export function SequenceTab({ campaignId }: SequenceTabProps) {
             disabled={atMaxSteps || addingStep}
             onClick={handleAddStep}
           >
-            {addingStep ? "Adding…" : "Add Step"}
+            {addingStep ? "Adding…" : steps.length === 0 ? "Add Initial Email" : "Add Follow-up"}
           </Button>
         </span>
       </div>
@@ -138,7 +138,7 @@ export function SequenceTab({ campaignId }: SequenceTabProps) {
             disabled={addingStep}
             onClick={handleAddStep}
           >
-            {addingStep ? "Adding…" : "Add Step"}
+            {addingStep ? "Adding…" : "Add Initial Email"}
           </Button>
         </div>
       ) : (

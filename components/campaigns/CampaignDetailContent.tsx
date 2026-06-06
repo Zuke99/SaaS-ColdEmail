@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Pencil } from "lucide-react";
 import { CampaignCronDevTools } from "@/components/campaigns/CampaignCronDevTools";
+import { CampaignDetailsTab } from "@/components/campaigns/CampaignDetailsTab";
 import { CampaignStatsStrip } from "@/components/campaigns/CampaignStatsStrip";
 import { CampaignStatusControls } from "@/components/campaigns/CampaignStatusControls";
 import { ContactsTab } from "@/components/campaigns/ContactsTab";
@@ -118,12 +119,17 @@ export function CampaignDetailContent({
       {campaign.stats ? <CampaignStatsStrip stats={campaign.stats} /> : null}
 
       <div className="flex-1 px-4 py-4 sm:px-6 sm:py-6">
-        <Tabs defaultValue="contacts" className="w-full">
+        <Tabs defaultValue="details" className="w-full">
           <TabsList>
+            <TabsTrigger value="details">Campaign Details</TabsTrigger>
             <TabsTrigger value="contacts">Contacts</TabsTrigger>
             <TabsTrigger value="sequence">Sequence</TabsTrigger>
             <TabsTrigger value="sent-log">Sent Log</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="details">
+            <CampaignDetailsTab campaignId={campaignId} />
+          </TabsContent>
 
           <TabsContent value="contacts">
             <ContactsTab campaignId={campaignId} />

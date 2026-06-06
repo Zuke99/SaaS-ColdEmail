@@ -2,9 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { AddContactDialog } from "@/components/campaigns/AddContactDialog";
+import { ComposeEmailSheet } from "@/components/campaigns/ComposeEmailSheet";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,6 +16,7 @@ import {
 import { ContactStatusBadge } from "@/components/campaigns/ContactStatusBadge";
 import { ImportCsvDialog } from "@/components/campaigns/ImportCsvDialog";
 import type { Contact } from "@/lib/types/contact";
+import type { SequenceStep } from "@/lib/types/sequence";
 import { cn } from "@/lib/utils";
 
 type ContactsTabProps = {
@@ -22,26 +25,37 @@ type ContactsTabProps = {
 
 export function ContactsTab({ campaignId }: ContactsTabProps) {
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const [step1, setStep1] = useState<SequenceStep | null>(null);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [sending, setSending] = useState(false);
+  const [composingContact, setComposingContact] = useState<Contact | null>(null);
+  const [addContactOpen, setAddContactOpen] = useState(false);
 
   const loadContacts = useCallback(async () => {
     setFetchError(null);
-    const res = await fetch(`/api/campaigns/${campaignId}/contacts`);
-    const data = await res.json().catch(() => ({}));
+    const [contactsRes, stepsRes] = await Promise.all([
+      fetch(`/api/campaigns/${campaignId}/contacts`),
+      fetch(`/api/campaigns/${campaignId}/sequence`),
+    ]);
+    const contactsData = await contactsRes.json().catch(() => ({}));
 
-    if (!res.ok) {
+    if (!contactsRes.ok) {
       setFetchError(
-        typeof data.error === "string" ? data.error : "Failed to load contacts"
+        typeof contactsData.error === "string" ? contactsData.error : "Failed to load contacts"
       );
       setContacts([]);
       return;
     }
 
-    setContacts(Array.isArray(data) ? data : []);
+    setContacts(Array.isArray(contactsData) ? contactsData : []);
+
+    if (stepsRes.ok) {
+      const stepsData: SequenceStep[] = await stepsRes.json().catch(() => []);
+      setStep1(stepsData.find((s) => s.step_number === 1) ?? null);
+    }
   }, [campaignId]);
 
   useEffect(() => {
@@ -158,9 +172,14 @@ export function ContactsTab({ campaignId }: ContactsTabProps) {
     <div className="flex flex-col">
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="font-mono text-sm text-muted">{countLabel}</p>
-        <Button size="sm" variant="outline" onClick={() => setImportOpen(true)}>
-          Import CSV
-        </Button>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={() => setAddContactOpen(true)}>
+            Add Contact
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => setImportOpen(true)}>
+            Import CSV
+          </Button>
+        </div>
       </div>
 
       {selectedIds.size > 0 ? (
@@ -272,40 +291,53 @@ export function ContactsTab({ campaignId }: ContactsTabProps) {
                       })}
                     </td>
                     <td className="px-4 py-3">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
+                      <div className="flex items-center justify-end gap-1">
+                        {selectable && (
                           <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-muted"
-                            aria-label="Contact actions"
+                            size="sm"
+                            variant="outline"
+                            className="h-7 gap-1.5 px-2 text-xs"
+                            onClick={() => setComposingContact(contact)}
                           >
-                            <MoreHorizontal className="h-4 w-4" />
+                            <Pencil className="h-3 w-3" />
+                            Compose
                           </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() =>
-                              updateStatus(contact.id, "replied")
-                            }
-                          >
-                            Mark as Replied
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() =>
-                              updateStatus(contact.id, "bounced")
-                            }
-                          >
-                            Mark as Bounced
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-danger focus:text-danger"
-                            onClick={() => removeContact(contact.id)}
-                          >
-                            Remove
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                        )}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted"
+                              aria-label="Contact actions"
+                            >
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() =>
+                                updateStatus(contact.id, "replied")
+                              }
+                            >
+                              Mark as Replied
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() =>
+                                updateStatus(contact.id, "bounced")
+                              }
+                            >
+                              Mark as Bounced
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-danger focus:text-danger"
+                              onClick={() => removeContact(contact.id)}
+                            >
+                              Remove
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -315,6 +347,13 @@ export function ContactsTab({ campaignId }: ContactsTabProps) {
         </div>
       )}
 
+      <AddContactDialog
+        campaignId={campaignId}
+        open={addContactOpen}
+        onOpenChange={setAddContactOpen}
+        onAdded={() => void loadContacts()}
+      />
+
       <ImportCsvDialog
         campaignId={campaignId}
         open={importOpen}
@@ -323,6 +362,15 @@ export function ContactsTab({ campaignId }: ContactsTabProps) {
           setLoading(false);
           void loadContacts();
         }}
+      />
+
+      <ComposeEmailSheet
+        campaignId={campaignId}
+        contact={composingContact}
+        step1={step1}
+        open={composingContact !== null}
+        onOpenChange={(open) => { if (!open) setComposingContact(null); }}
+        onSent={() => void loadContacts()}
       />
     </div>
   );

@@ -142,6 +142,7 @@ export async function sendGmailEmail({
 
   const accessToken = await getValidAccessToken(userId);
   const baseUrl = resolveAppBaseUrl(request);
+  const unsubUrl = `${baseUrl}/api/unsubscribe/${contactId}`;
   const finalBody = buildEmailHtml(body, trackingPixelId, contactId, baseUrl);
 
   console.log("[Gmail] Sending email via Gmail API", {
@@ -160,6 +161,10 @@ export async function sendGmailEmail({
     to: toName ? `"${toName.trim()}" <${to.trim()}>` : to.trim(),
     subject,
     html: finalBody,
+    headers: {
+      "List-Unsubscribe": `<mailto:unsubscribe@getfiginbox.com>, <${unsubUrl}>`,
+      "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+    },
   };
 
   if (inReplyTo) {
