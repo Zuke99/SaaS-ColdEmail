@@ -34,7 +34,7 @@ export async function POST(request: Request, { params }: RouteContext) {
 
   const { data: campaign, error: campaignError } = await supabase
     .from("campaigns")
-    .select("id, sender_name, sender_email, daily_limit")
+    .select("id, sender_name, sender_email, daily_limit, status")
     .eq("id", params.id)
     .eq("user_id", user.id)
     .single();
@@ -42,6 +42,13 @@ export async function POST(request: Request, { params }: RouteContext) {
   if (campaignError) {
     const status = campaignError.code === "PGRST116" ? 404 : 500;
     return NextResponse.json({ error: campaignError.message }, { status });
+  }
+
+  if (campaign.status !== "active") {
+    return NextResponse.json(
+      { error: "Activate the campaign before sending emails." },
+      { status: 400 }
+    );
   }
 
   if (!campaign.sender_email?.trim() || !campaign.sender_name?.trim()) {
