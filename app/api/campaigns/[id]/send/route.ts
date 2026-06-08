@@ -2,17 +2,13 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { stripInternalCustomVars } from "@/lib/sequence/variables";
 import { getAuthedCampaignContext } from "@/lib/api/campaign-route";
-import { renderTemplate, sendGmailEmail } from "@/lib/gmail";
+import { renderTemplate } from "@/lib/gmail";
 
 type RouteContext = { params: { id: string } };
 
 const sendSchema = z.object({
   contactIds: z.array(z.string().uuid()).min(1),
 });
-
-function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
 
 function todayDateString() {
   return new Date().toISOString().slice(0, 10);
@@ -73,15 +69,11 @@ export async function POST(request: Request, { params }: RouteContext) {
     (step.custom_vars as Record<string, string> | null) ?? {}
   );
 
-  let sent = 0;
-  let failed = 0;
+  let queued = 0;
   let skipped = 0;
-  const now = new Date().toISOString();
   const scheduledFor = todayDateString();
 
-  for (let i = 0; i < parsed.data.contactIds.length; i++) {
-    const contactId = parsed.data.contactIds[i];
-
+  for (const contactId of parsed.data.contactIds) {
     const { data: contact, error: contactError } = await supabase
       .from("contacts")
       .select("id, name, email, status")
@@ -99,23 +91,11 @@ export async function POST(request: Request, { params }: RouteContext) {
       continue;
     }
 
-    const contactForTemplate = {
-      name: contact.name ?? "",
-      email: contact.email,
-    };
+    const contactForTemplate = { name: contact.name ?? "", email: contact.email };
+    const renderedSubject = renderTemplate(step.subject, contactForTemplate, customVars);
+    const renderedBody = renderTemplate(step.body, contactForTemplate, customVars);
 
-    const renderedSubject = renderTemplate(
-      step.subject,
-      contactForTemplate,
-      customVars
-    );
-    const renderedBody = renderTemplate(
-      step.body,
-      contactForTemplate,
-      customVars
-    );
-
-    const { data: logRow, error: insertError } = await supabase
+    const { error: insertError } = await supabase
       .from("send_log")
       .insert({
         campaign_id: params.id,
@@ -125,70 +105,15 @@ export async function POST(request: Request, { params }: RouteContext) {
         body: renderedBody,
         status: "pending",
         scheduled_for: scheduledFor,
-      })
-      .select("id, tracking_pixel_id")
-      .single();
+      });
 
-    if (insertError || !logRow?.tracking_pixel_id) {
-      failed++;
+    if (insertError) {
+      skipped++;
       continue;
     }
 
-    try {
-      console.log("[Send] sendGmailEmail payload", {
-        tracking_pixel_id: logRow.tracking_pixel_id,
-        contact_id: contact.id,
-        send_log_id: logRow.id,
-      });
-
-      const { messageId, threadId } = await sendGmailEmail({
-        userId: user.id,
-        to: contact.email,
-        toName: contact.name ?? undefined,
-        subject: renderedSubject,
-        body: renderedBody,
-        senderEmail: campaign.sender_email,
-        senderName: campaign.sender_name,
-        trackingPixelId: logRow.tracking_pixel_id,
-        contactId: contact.id,
-        request,
-      });
-
-      await supabase
-        .from("send_log")
-        .update({
-          status: "sent",
-          sent_at: now,
-          gmail_message_id: messageId,
-          gmail_thread_id: threadId,
-        })
-        .eq("id", logRow.id);
-
-      await supabase
-        .from("contacts")
-        .update({ status: "sent", updated_at: now })
-        .eq("id", contact.id);
-
-      sent++;
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to send email";
-
-      await supabase
-        .from("send_log")
-        .update({
-          status: "failed",
-          error_message: errorMessage,
-        })
-        .eq("id", logRow.id);
-
-      failed++;
-    }
-
-    if (i < parsed.data.contactIds.length - 1) {
-      await sleep(2000);
-    }
+    queued++;
   }
 
-  return NextResponse.json({ sent, failed, skipped });
+  return NextResponse.json({ queued, skipped });
 }

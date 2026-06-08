@@ -157,10 +157,13 @@ export function ContactsTab({ campaignId }: ContactsTabProps) {
       return;
     }
 
-    const sent = data.sent ?? 0;
-    const failed = data.failed ?? 0;
+    const queued = data.queued ?? 0;
+    const skipped = data.skipped ?? 0;
 
-    toast.success(`Sent ${sent} emails, ${failed} failed`);
+    const msg = skipped > 0
+      ? `${queued} email${queued !== 1 ? "s" : ""} queued — they'll be sent within the hour (${skipped} skipped)`
+      : `${queued} email${queued !== 1 ? "s" : ""} queued — they'll be sent within the hour`;
+    toast.success(msg);
     setSelectedIds(new Set());
     void loadContacts();
   }
