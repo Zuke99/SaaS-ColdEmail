@@ -119,6 +119,11 @@ export async function POST(request: Request, { params }: RouteContext) {
       continue;
     }
 
+    await supabase
+      .from("contacts")
+      .update({ status: "queued", updated_at: new Date().toISOString() })
+      .eq("id", contact.id);
+
     queued++;
   }
 

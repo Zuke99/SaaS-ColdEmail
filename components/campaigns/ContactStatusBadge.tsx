@@ -3,6 +3,7 @@ import type { ContactStatus } from "@/lib/types/contact";
 
 const statusStyles: Record<ContactStatus, string> = {
   not_started: "bg-zinc-500/15 text-zinc-400",
+  queued: "bg-amber-500/15 text-amber-400",
   sent: "bg-pending/15 text-pending",
   opened: "bg-blue-500/15 text-blue-400",
   replied: "bg-success/15 text-success",
@@ -12,6 +13,7 @@ const statusStyles: Record<ContactStatus, string> = {
 
 const statusLabels: Record<ContactStatus, string> = {
   not_started: "Not started",
+  queued: "Queued",
   sent: "Sent",
   opened: "Opened",
   replied: "Replied",

@@ -1,5 +1,6 @@
 export type ContactStatus =
   | "not_started"
+  | "queued"
   | "sent"
   | "opened"
   | "replied"
