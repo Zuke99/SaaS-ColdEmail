@@ -66,8 +66,7 @@ export async function runSendEmails(): Promise<{
     }
 
     const remaining = campaign.daily_limit - sentToday;
-    const hourlyBudget = Math.ceil(campaign.daily_limit / 8);
-    const limit = Math.min(hourlyBudget, remaining);
+    const batchLimit = Math.min(remaining, 3);
 
     // Use lte so overdue pending rows (scheduled_for in the past) are picked up
     const { data: pendingRows, error: pendingError } = await supabase
@@ -78,7 +77,7 @@ export async function runSendEmails(): Promise<{
       .eq("status", "pending")
       .order("scheduled_for", { ascending: true })
       .order("created_at", { ascending: true })
-      .limit(limit);
+      .limit(batchLimit);
 
     if (pendingError || !pendingRows?.length) continue;
 

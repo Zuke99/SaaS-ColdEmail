@@ -13,7 +13,7 @@ export function addDaysToDate(dateStr: string, days: number): string {
 }
 
 export function randomSendDelayMs(): number {
-  return 45_000 + Math.floor(Math.random() * (120_000 - 45_000 + 1));
+  return 2_000 + Math.floor(Math.random() * (4_000 - 2_000 + 1));
 }
 
 export function sleep(ms: number): Promise<void> {
