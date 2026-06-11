@@ -7,6 +7,7 @@ const nextConfig = {
       "dodopayments",
       "@dodopayments/core",
       "nodemailer",
+      "node-cron",
     ],
   },
 };

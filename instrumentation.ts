@@ -54,5 +54,25 @@ export async function register() {
     } catch (err) {
       console.error("[Startup] Schema provisioning failed:", err);
     }
+
+    const cron = await import("node-cron");
+    const { runScheduleFollowups } = await import("./lib/cron/schedule-followups");
+    const { runSendEmails } = await import("./lib/cron/send-emails");
+
+    // Daily at 8 AM UTC — queues follow-up emails that are due
+    cron.schedule("0 8 * * *", () => {
+      runScheduleFollowups().catch((err) =>
+        console.error("[Cron] schedule-followups failed:", err)
+      );
+    });
+
+    // Every 5 minutes — sends up to 3 pending emails per campaign
+    cron.schedule("*/5 * * * *", () => {
+      runSendEmails().catch((err) =>
+        console.error("[Cron] send-emails failed:", err)
+      );
+    });
+
+    console.log("[Cron] Scheduled: schedule-followups (daily 8 AM UTC), send-emails (every 5 min)");
   }
 }
