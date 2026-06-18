@@ -36,13 +36,14 @@ function buildEmailHtml(
 
 export function renderTemplate(
   template: string,
-  contact: { name: string; email: string },
+  contact: { name: string; email: string; company?: string | null },
   customVars: Record<string, string>
 ): string {
   return template.replace(VARIABLE_REGEX, (_, key: string) => {
     const lower = key.toLowerCase();
     if (lower === "name") return contact.name ?? "";
     if (lower === "email") return contact.email ?? "";
+    if (lower === "company") return contact.company ?? "";
     return customVars[key] ?? customVars[lower] ?? "";
   });
 }

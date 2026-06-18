@@ -210,7 +210,7 @@ export function StepEditor({
             value={body}
             onChange={(e) => setBody(e.target.value)}
             rows={8}
-            placeholder="Write your email body here. Use {{name}} or {{email}} to personalize."
+            placeholder="Write your email body here. Use {{name}}, {{email}}, or {{company}} to personalize."
           />
           <p className="text-xs text-muted">
             Type {"{{anything}}"} to create a custom placeholder

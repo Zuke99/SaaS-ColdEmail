@@ -22,6 +22,7 @@ type Props = {
 export function AddContactDialog({ campaignId, open, onOpenChange, onAdded }: Props) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [company, setCompany] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -29,6 +30,7 @@ export function AddContactDialog({ campaignId, open, onOpenChange, onAdded }: Pr
     if (!next) {
       setName("");
       setEmail("");
+      setCompany("");
       setError(null);
     }
     onOpenChange(next);
@@ -47,7 +49,7 @@ export function AddContactDialog({ campaignId, open, onOpenChange, onAdded }: Pr
     const res = await fetch(`/api/campaigns/${campaignId}/contacts`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ contacts: [{ name: name.trim() || null, email: email.trim() }] }),
+      body: JSON.stringify({ contacts: [{ name: name.trim() || null, email: email.trim(), company: company.trim() || null }] }),
     });
 
     const data = await res.json().catch(() => ({}));
@@ -95,6 +97,16 @@ export function AddContactDialog({ campaignId, open, onOpenChange, onAdded }: Pr
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoFocus
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="add-contact-company">Company (optional)</Label>
+            <Input
+              id="add-contact-company"
+              placeholder="Acme Corp"
+              value={company}
+              onChange={(e) => setCompany(e.target.value)}
             />
           </div>
 

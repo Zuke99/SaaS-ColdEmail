@@ -35,6 +35,7 @@ export function ImportCsvDialog({
   const [columns, setColumns] = useState<string[]>([]);
   const [nameColumn, setNameColumn] = useState("");
   const [emailColumn, setEmailColumn] = useState("");
+  const [companyColumn, setCompanyColumn] = useState("");
   const [importing, setImporting] = useState(false);
   const [dragOver, setDragOver] = useState(false);
 
@@ -44,6 +45,7 @@ export function ImportCsvDialog({
     setColumns([]);
     setNameColumn("");
     setEmailColumn("");
+    setCompanyColumn("");
     setImporting(false);
     setDragOver(false);
   }, []);
@@ -79,11 +81,14 @@ export function ImportCsvDialog({
           cols.find((c) => /name/i.test(c) && !/email/i.test(c)) ??
           cols.find((c) => /name/i.test(c)) ??
           "";
+        const companyGuess =
+          cols.find((c) => /company/i.test(c)) ?? "";
 
         setRows(data);
         setColumns(cols);
         setEmailColumn(emailGuess);
         setNameColumn(nameGuess);
+        setCompanyColumn(companyGuess);
         setStep("map");
       },
       error: () => {
@@ -104,9 +109,10 @@ export function ImportCsvDialog({
       .map((row) => ({
         name: nameColumn ? (row[nameColumn]?.trim() || null) : null,
         email: row[emailColumn]?.trim() ?? "",
+        company: companyColumn ? (row[companyColumn]?.trim() || null) : null,
       }))
       .filter((c) => c.email.length > 0);
-  }, [rows, nameColumn, emailColumn]);
+  }, [rows, nameColumn, emailColumn, companyColumn]);
 
   const firstPreview = mappedContacts[0];
 
@@ -229,7 +235,7 @@ export function ImportCsvDialog({
               </table>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-3">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground">
                   Name column
@@ -264,12 +270,29 @@ export function ImportCsvDialog({
                   ))}
                 </select>
               </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">
+                  Company column
+                </label>
+                <select
+                  value={companyColumn}
+                  onChange={(e) => setCompanyColumn(e.target.value)}
+                  className="flex h-9 w-full rounded-md border border-border bg-surface px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
+                >
+                  <option value="">— None —</option>
+                  {columns.map((col) => (
+                    <option key={col} value={col}>
+                      {col}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             {firstPreview ? (
               <p className="rounded-md border border-border bg-background px-3 py-2 text-sm text-muted">
                 <span className="text-foreground">Preview: </span>
-                Name: {firstPreview.name || "—"} | Email: {firstPreview.email}
+                Name: {firstPreview.name || "—"} | Email: {firstPreview.email} | Company: {firstPreview.company || "—"}
               </p>
             ) : null}
 

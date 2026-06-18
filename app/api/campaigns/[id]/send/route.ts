@@ -83,7 +83,7 @@ export async function POST(request: Request, { params }: RouteContext) {
   for (const contactId of parsed.data.contactIds) {
     const { data: contact, error: contactError } = await supabase
       .from("contacts")
-      .select("id, name, email, status")
+      .select("id, name, email, company, status")
       .eq("id", contactId)
       .eq("campaign_id", params.id)
       .single();
@@ -98,7 +98,7 @@ export async function POST(request: Request, { params }: RouteContext) {
       continue;
     }
 
-    const contactForTemplate = { name: contact.name ?? "", email: contact.email };
+    const contactForTemplate = { name: contact.name ?? "", email: contact.email, company: contact.company };
     const renderedSubject = renderTemplate(step.subject, contactForTemplate, customVars);
     const renderedBody = renderTemplate(step.body, contactForTemplate, customVars);
 

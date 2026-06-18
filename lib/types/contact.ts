@@ -12,6 +12,7 @@ export type Contact = {
   campaign_id: string;
   name: string | null;
   email: string;
+  company: string | null;
   status: ContactStatus;
   created_at: string;
   updated_at: string;

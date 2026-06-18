@@ -9,6 +9,7 @@ const emailSchema = z.string().trim().email();
 const contactInputSchema = z.object({
   name: z.string().optional().nullable(),
   email: z.string().trim().min(1),
+  company: z.string().optional().nullable(),
 });
 
 const importContactsSchema = z.object({
@@ -64,7 +65,7 @@ export async function POST(request: Request, { params }: RouteContext) {
     (existing ?? []).map((row) => row.email.toLowerCase())
   );
   const batchEmails = new Set<string>();
-  const toInsert: { campaign_id: string; name: string | null; email: string }[] =
+  const toInsert: { campaign_id: string; name: string | null; email: string; company: string | null }[] =
     [];
   let skipped = 0;
 
@@ -77,6 +78,7 @@ export async function POST(request: Request, { params }: RouteContext) {
 
     const email = emailParsed.data.toLowerCase();
     const name = contact.name?.trim() || null;
+    const company = contact.company?.trim() || null;
 
     if (existingEmails.has(email) || batchEmails.has(email)) {
       skipped++;
@@ -88,6 +90,7 @@ export async function POST(request: Request, { params }: RouteContext) {
       campaign_id: params.id,
       name,
       email,
+      company,
     });
   }
 

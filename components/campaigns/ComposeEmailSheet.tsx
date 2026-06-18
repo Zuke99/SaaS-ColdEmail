@@ -30,12 +30,13 @@ const VARIABLE_REGEX = /\{\{(\w+)\}\}/g;
 
 function renderTemplate(
   template: string,
-  contact: { name: string; email: string }
+  contact: { name: string; email: string; company?: string | null }
 ): string {
   return template.replace(VARIABLE_REGEX, (_, key: string) => {
     const lower = key.toLowerCase();
     if (lower === "name") return contact.name || "";
     if (lower === "email") return contact.email || "";
+    if (lower === "company") return contact.company || "";
     return `{{${key}}}`;
   });
 }
@@ -55,7 +56,7 @@ export function ComposeEmailSheet({
 
   useEffect(() => {
     if (!open || !contact) return;
-    const contactForRender = { name: contact.name ?? "", email: contact.email };
+    const contactForRender = { name: contact.name ?? "", email: contact.email, company: contact.company };
     setSubject(step1 ? renderTemplate(step1.subject, contactForRender) : "");
     setBody(step1 ? renderTemplate(step1.body, contactForRender) : "");
     setError(null);

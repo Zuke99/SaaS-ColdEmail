@@ -2,7 +2,7 @@ export const MAX_SEQUENCE_STEPS = 4;
 
 export const REPLY_TO_PREVIOUS_KEY = "__reply_to_previous";
 
-export const SPREADSHEET_VARIABLES = new Set(["name", "email"]);
+export const SPREADSHEET_VARIABLES = new Set(["name", "email", "company"]);
 
 const VARIABLE_REGEX = /\{\{(\w+)\}\}/g;
 
@@ -55,6 +55,7 @@ export function substituteVariables(
     const lower = key.toLowerCase();
     if (lower === "name") return "John";
     if (lower === "email") return "john@example.com";
+    if (lower === "company") return "Acme Corp";
     return customVars[key] ?? customVars[lower] ?? `{{${key}}}`;
   });
 }

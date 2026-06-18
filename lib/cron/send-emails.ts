@@ -86,7 +86,7 @@ export async function runSendEmails(): Promise<{
 
       const { data: contact, error: contactError } = await supabase
         .from("contacts")
-        .select("id, name, email, status")
+        .select("id, name, email, company, status")
         .eq("id", row.contact_id)
         .single();
 
@@ -119,6 +119,7 @@ export async function runSendEmails(): Promise<{
       const contactForTemplate = {
         name: contact.name ?? "",
         email: contact.email,
+        company: contact.company,
       };
 
       let renderedSubject: string;
