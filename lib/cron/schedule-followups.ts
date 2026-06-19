@@ -5,7 +5,11 @@ import {
 } from "@/lib/cron/dates";
 import { createCronClient } from "@/lib/supabase/cron";
 
+const LOG = "[Cron][schedule-followups]";
+
 export async function runScheduleFollowups(): Promise<{ scheduled: number }> {
+  console.log(`${LOG} run started`);
+
   const supabase = createCronClient();
   const today = todayDateString();
   let scheduled = 0;
@@ -16,17 +20,33 @@ export async function runScheduleFollowups(): Promise<{ scheduled: number }> {
     .eq("status", "active");
 
   if (campaignsError) {
+    console.error(`${LOG} failed to fetch campaigns:`, campaignsError.message);
     throw new Error(campaignsError.message);
   }
 
-  for (const campaign of campaigns ?? []) {
+  const activeCampaigns = campaigns ?? [];
+  console.log(`${LOG} active campaigns: ${activeCampaigns.length}`);
+
+  if (activeCampaigns.length === 0) {
+    console.log(`${LOG} no active campaigns — nothing to do`);
+    return { scheduled };
+  }
+
+  for (const campaign of activeCampaigns) {
     const { data: steps, error: stepsError } = await supabase
       .from("sequence_steps")
       .select("*")
       .eq("campaign_id", campaign.id)
       .order("step_number", { ascending: true });
 
-    if (stepsError || !steps?.length) continue;
+    if (stepsError) {
+      console.error(`${LOG} campaign ${campaign.id}: failed to fetch steps:`, stepsError.message);
+      continue;
+    }
+    if (!steps?.length) {
+      console.log(`${LOG} campaign ${campaign.id}: no sequence steps — skipping`);
+      continue;
+    }
 
     const { data: contacts, error: contactsError } = await supabase
       .from("contacts")
@@ -34,7 +54,16 @@ export async function runScheduleFollowups(): Promise<{ scheduled: number }> {
       .eq("campaign_id", campaign.id)
       .in("status", ["sent", "opened"]);
 
-    if (contactsError || !contacts?.length) continue;
+    if (contactsError) {
+      console.error(`${LOG} campaign ${campaign.id}: failed to fetch eligible contacts:`, contactsError.message);
+      continue;
+    }
+    if (!contacts?.length) {
+      console.log(`${LOG} campaign ${campaign.id}: no eligible contacts for follow-ups`);
+      continue;
+    }
+
+    console.log(`${LOG} campaign ${campaign.id}: checking ${contacts.length} contact(s) for due follow-ups`);
 
     for (const contact of contacts) {
       const { data: lastSentLogs, error: lastSentError } = await supabase
@@ -81,10 +110,15 @@ export async function runScheduleFollowups(): Promise<{ scheduled: number }> {
       });
 
       if (!insertError) {
+        console.log(`${LOG} campaign ${campaign.id}: queued step ${nextStep.step_number} for contact ${contact.id}`);
         scheduled++;
+      } else {
+        console.error(`${LOG} campaign ${campaign.id}: failed to queue step ${nextStep.step_number} for contact ${contact.id}:`, insertError.message);
       }
     }
   }
 
-  return { scheduled };
+  const summary = { scheduled };
+  console.log(`${LOG} run complete`, summary);
+  return summary;
 }

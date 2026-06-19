@@ -19,11 +19,15 @@ function isReplyThreadStep(step: SequenceStepRow): boolean {
   return step.subject.trim().toLowerCase().startsWith("re:");
 }
 
+const LOG = "[Cron][send-emails]";
+
 export async function runSendEmails(): Promise<{
   sent: number;
   failed: number;
   skipped: number;
 }> {
+  console.log(`${LOG} run started`);
+
   const supabase = createCronClient();
   const today = todayDateString();
   let sent = 0;
@@ -36,22 +40,33 @@ export async function runSendEmails(): Promise<{
     .eq("status", "active");
 
   if (campaignsError) {
+    console.error(`${LOG} failed to fetch campaigns:`, campaignsError.message);
     throw new Error(campaignsError.message);
+  }
+
+  const activeCampaigns = campaigns ?? [];
+  console.log(`${LOG} active campaigns: ${activeCampaigns.length}`);
+
+  if (activeCampaigns.length === 0) {
+    console.log(`${LOG} no active campaigns — nothing to do`);
+    return { sent, failed, skipped };
   }
 
   const tokenFailedUserIds = new Set<string>();
 
-  for (const campaign of campaigns ?? []) {
+  for (const campaign of activeCampaigns) {
     if (
       !campaign.user_id ||
       !campaign.sender_email?.trim() ||
       !campaign.sender_name?.trim()
     ) {
+      console.warn(`${LOG} campaign ${campaign.id}: missing sender config — skipping`);
       skipped++;
       continue;
     }
 
     if (tokenFailedUserIds.has(campaign.user_id)) {
+      console.warn(`${LOG} campaign ${campaign.id}: user token already failed this run — skipping`);
       skipped++;
       continue;
     }
@@ -64,16 +79,22 @@ export async function runSendEmails(): Promise<{
       .eq("status", "sent")
       .eq("sent_by_cron", true);
 
-    if (countError) continue;
+    if (countError) {
+      console.error(`${LOG} campaign ${campaign.id}: failed to count sent today:`, countError.message);
+      continue;
+    }
 
     const sentToday = alreadySentToday ?? 0;
     if (sentToday >= campaign.daily_limit) {
+      console.log(`${LOG} campaign ${campaign.id}: daily limit reached (${sentToday}/${campaign.daily_limit}) — skipping`);
       skipped++;
       continue;
     }
 
     const remaining = campaign.daily_limit - sentToday;
     const batchLimit = Math.min(remaining, 3);
+
+    console.log(`${LOG} campaign ${campaign.id}: sent today ${sentToday}/${campaign.daily_limit}, fetching up to ${batchLimit} pending`);
 
     // Use lte so overdue pending rows (scheduled_for in the past) are picked up
     const { data: pendingRows, error: pendingError } = await supabase
@@ -86,7 +107,17 @@ export async function runSendEmails(): Promise<{
       .order("created_at", { ascending: true })
       .limit(batchLimit);
 
-    if (pendingError || !pendingRows?.length) continue;
+    if (pendingError) {
+      console.error(`${LOG} campaign ${campaign.id}: failed to fetch pending rows:`, pendingError.message);
+      continue;
+    }
+
+    if (!pendingRows?.length) {
+      console.log(`${LOG} campaign ${campaign.id}: no pending emails due today`);
+      continue;
+    }
+
+    console.log(`${LOG} campaign ${campaign.id}: ${pendingRows.length} pending email(s) to send`);
 
     for (let i = 0; i < pendingRows.length; i++) {
       const row = pendingRows[i];
@@ -98,11 +129,13 @@ export async function runSendEmails(): Promise<{
         .single();
 
       if (contactError || !contact) {
+        console.error(`${LOG} campaign ${campaign.id}: contact ${row.contact_id} not found — skipping`);
         skipped++;
         continue;
       }
 
       if (["replied", "unsubscribed", "bounced"].includes(contact.status)) {
+        console.log(`${LOG} campaign ${campaign.id}: contact ${contact.email} has status "${contact.status}" — skipping`);
         skipped++;
         continue;
       }
@@ -115,6 +148,7 @@ export async function runSendEmails(): Promise<{
         .single();
 
       if (stepError || !sequenceStep) {
+        console.error(`${LOG} campaign ${campaign.id}: step ${row.step_number} not found — skipping`);
         skipped++;
         continue;
       }
@@ -159,6 +193,7 @@ export async function runSendEmails(): Promise<{
       const now = new Date().toISOString();
 
       if (!row.tracking_pixel_id) {
+        console.error(`${LOG} campaign ${campaign.id}: send_log row ${row.id} missing tracking_pixel_id — skipping`);
         skipped++;
         continue;
       }
@@ -186,6 +221,8 @@ export async function runSendEmails(): Promise<{
         }
       }
 
+      console.log(`${LOG} campaign ${campaign.id}: sending step ${row.step_number} to ${contact.email}`);
+
       try {
         const { messageId, threadId } = await sendGmailEmail({
           userId: campaign.user_id,
@@ -201,6 +238,8 @@ export async function runSendEmails(): Promise<{
           references,
           gmailThreadId,
         });
+
+        console.log(`${LOG} campaign ${campaign.id}: sent to ${contact.email} (messageId: ${messageId})`);
 
         await supabase
           .from("send_log")
@@ -225,12 +264,15 @@ export async function runSendEmails(): Promise<{
         sent++;
       } catch (err) {
         if (err instanceof GmailTokenError) {
+          console.error(`${LOG} campaign ${campaign.id}: Gmail token error for user ${campaign.user_id} — pausing all campaigns for this user:`, err.message);
           tokenFailedUserIds.add(campaign.user_id);
           break;
         }
 
         const errorMessage =
           err instanceof Error ? err.message : "Failed to send email";
+
+        console.error(`${LOG} campaign ${campaign.id}: failed to send to ${contact.email}:`, errorMessage);
 
         await supabase
           .from("send_log")
@@ -251,5 +293,7 @@ export async function runSendEmails(): Promise<{
     }
   }
 
-  return { sent, failed, skipped };
+  const summary = { sent, failed, skipped };
+  console.log(`${LOG} run complete`, summary);
+  return summary;
 }

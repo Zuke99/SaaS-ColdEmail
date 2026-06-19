@@ -61,16 +61,18 @@ export async function register() {
 
     // Daily at 8 AM UTC — queues follow-up emails that are due
     cron.schedule("0 8 * * *", () => {
-      runScheduleFollowups().catch((err) =>
-        console.error("[Cron] schedule-followups failed:", err)
-      );
+      console.log("[Cron] schedule-followups: tick fired");
+      runScheduleFollowups()
+        .then((result) => console.log("[Cron] schedule-followups: done", result))
+        .catch((err) => console.error("[Cron] schedule-followups: unhandled error", err));
     });
 
     // Every 5 minutes — sends up to 3 pending emails per campaign
     cron.schedule("*/5 * * * *", () => {
-      runSendEmails().catch((err) =>
-        console.error("[Cron] send-emails failed:", err)
-      );
+      console.log("[Cron] send-emails: tick fired");
+      runSendEmails()
+        .then((result) => console.log("[Cron] send-emails: done", result))
+        .catch((err) => console.error("[Cron] send-emails: unhandled error", err));
     });
 
     console.log("[Cron] Scheduled: schedule-followups (daily 8 AM UTC), send-emails (every 5 min)");
