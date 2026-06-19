@@ -55,6 +55,7 @@ export async function GET(request: Request) {
         access_token: tokens.access_token,
         refresh_token: refreshToken,
         token_expiry: tokenExpiry,
+        token_error: false,
         updated_at: now,
       },
       { onConflict: "user_id" }

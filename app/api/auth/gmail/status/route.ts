@@ -10,7 +10,7 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from("gmail_credentials")
-    .select("sender_email, token_expiry, updated_at")
+    .select("sender_email, token_expiry, token_error, updated_at")
     .eq("user_id", user.id)
     .maybeSingle();
 
@@ -23,6 +23,7 @@ export async function GET() {
       connected: false,
       email: null,
       expired: false,
+      token_error: false,
       updated_at: null,
     });
   }
@@ -35,6 +36,7 @@ export async function GET() {
     connected: true,
     email: data.sender_email,
     expired,
+    token_error: data.token_error ?? false,
     updated_at: data.updated_at,
   });
 }

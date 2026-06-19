@@ -4,7 +4,7 @@ import {
   stripInternalCustomVars,
 } from "@/lib/sequence/variables";
 import { randomSendDelayMs, sleep, todayDateString } from "@/lib/cron/dates";
-import { renderTemplate, sendGmailEmail } from "@/lib/gmail";
+import { GmailTokenError, renderTemplate, sendGmailEmail } from "@/lib/gmail";
 import { createCronClient } from "@/lib/supabase/cron";
 
 type SequenceStepRow = {
@@ -39,12 +39,19 @@ export async function runSendEmails(): Promise<{
     throw new Error(campaignsError.message);
   }
 
+  const tokenFailedUserIds = new Set<string>();
+
   for (const campaign of campaigns ?? []) {
     if (
       !campaign.user_id ||
       !campaign.sender_email?.trim() ||
       !campaign.sender_name?.trim()
     ) {
+      skipped++;
+      continue;
+    }
+
+    if (tokenFailedUserIds.has(campaign.user_id)) {
       skipped++;
       continue;
     }
@@ -217,6 +224,11 @@ export async function runSendEmails(): Promise<{
 
         sent++;
       } catch (err) {
+        if (err instanceof GmailTokenError) {
+          tokenFailedUserIds.add(campaign.user_id);
+          break;
+        }
+
         const errorMessage =
           err instanceof Error ? err.message : "Failed to send email";
 

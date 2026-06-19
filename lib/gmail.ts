@@ -7,11 +7,19 @@ import { createCronClient } from "@/lib/supabase/cron";
 const VARIABLE_REGEX = /\{\{(\w+)\}\}/g;
 const TOKEN_REFRESH_BUFFER_MS = 5 * 60 * 1000;
 
+export class GmailTokenError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "GmailTokenError";
+  }
+}
+
 type GmailCredentialsRow = {
   sender_email: string;
   access_token: string | null;
   refresh_token: string;
   token_expiry: string | null;
+  token_error: boolean;
 };
 
 function buildEmailHtml(
@@ -52,7 +60,7 @@ async function getCredentialsRow(userId: string): Promise<GmailCredentialsRow> {
   const supabase = createCronClient();
   const { data, error } = await supabase
     .from("gmail_credentials")
-    .select("sender_email, access_token, refresh_token, token_expiry")
+    .select("sender_email, access_token, refresh_token, token_expiry, token_error")
     .eq("user_id", userId)
     .maybeSingle();
 
@@ -68,6 +76,13 @@ async function getCredentialsRow(userId: string): Promise<GmailCredentialsRow> {
 
 export async function getValidAccessToken(userId: string): Promise<string> {
   const row = await getCredentialsRow(userId);
+
+  if (row.token_error) {
+    throw new GmailTokenError(
+      "Gmail connection lost. Please reconnect in Settings."
+    );
+  }
+
   const expiryMs = row.token_expiry
     ? new Date(row.token_expiry).getTime()
     : 0;
@@ -77,26 +92,38 @@ export async function getValidAccessToken(userId: string): Promise<string> {
     return row.access_token;
   }
 
-  const tokens = await refreshAccessToken(row.refresh_token);
-  const tokenExpiry = new Date(
-    Date.now() + (tokens.expires_in ?? 3600) * 1000
-  ).toISOString();
-
   const supabase = createCronClient();
-  const { error } = await supabase
-    .from("gmail_credentials")
-    .update({
-      access_token: tokens.access_token,
-      token_expiry: tokenExpiry,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("user_id", userId);
 
-  if (error) {
-    throw new Error(error.message);
+  try {
+    const tokens = await refreshAccessToken(row.refresh_token);
+    const tokenExpiry = new Date(
+      Date.now() + (tokens.expires_in ?? 3600) * 1000
+    ).toISOString();
+
+    const { error } = await supabase
+      .from("gmail_credentials")
+      .update({
+        access_token: tokens.access_token,
+        token_expiry: tokenExpiry,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("user_id", userId);
+
+    if (error) throw new Error(error.message);
+
+    return tokens.access_token!;
+  } catch (err) {
+    if (err instanceof GmailTokenError) throw err;
+
+    await supabase
+      .from("gmail_credentials")
+      .update({ token_error: true, updated_at: new Date().toISOString() })
+      .eq("user_id", userId);
+
+    throw new GmailTokenError(
+      "Gmail token refresh failed. Please reconnect in Settings."
+    );
   }
-
-  return tokens.access_token!;
 }
 
 type SendGmailEmailOptions = {

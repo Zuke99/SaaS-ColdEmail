@@ -10,6 +10,7 @@ type GmailStatus = {
   connected: boolean;
   email: string | null;
   expired: boolean;
+  token_error: boolean;
   updated_at: string | null;
 };
 
@@ -72,6 +73,8 @@ export function GmailColdEmailSection() {
   const displayEmail = status?.email ?? "your Gmail account";
   const connected = status?.connected ?? false;
   const expired = status?.expired ?? false;
+  const tokenError = status?.token_error ?? false;
+  const needsReconnect = tokenError || expired;
 
   return (
     <section className="space-y-4 rounded-lg border border-border bg-surface p-4 sm:p-6">
@@ -101,7 +104,7 @@ export function GmailColdEmailSection() {
           <div className="flex items-start gap-3">
             <span
               className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${
-                expired ? "bg-amber-500" : "bg-emerald-500"
+                needsReconnect ? "bg-red-500" : "bg-emerald-500"
               }`}
               aria-hidden
             />
@@ -117,19 +120,24 @@ export function GmailColdEmailSection() {
               ) : null}
               <span
                 className={`mt-2 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
-                  expired
-                    ? "bg-amber-500/15 text-amber-400"
+                  needsReconnect
+                    ? "bg-red-500/15 text-red-400"
                     : "bg-emerald-500/15 text-emerald-400"
                 }`}
               >
-                {expired ? "Token expired" : "Connected"}
+                {tokenError ? "Action required — reconnect Gmail" : expired ? "Token expired" : "Connected"}
               </span>
+              {tokenError ? (
+                <p className="mt-1 text-xs text-muted">
+                  Your Gmail token expired. Campaigns are paused until you reconnect.
+                </p>
+              ) : null}
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            {expired ? (
+            {needsReconnect ? (
               <Button asChild variant="default" className="w-full sm:w-auto">
-                <a href="/api/auth/gmail/start">Reconnect</a>
+                <a href="/api/auth/gmail/start">Reconnect Gmail</a>
               </Button>
             ) : (
               <Button
