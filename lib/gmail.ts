@@ -188,6 +188,7 @@ export async function sendGmailEmail({
     from: `"${senderName.trim()}" <${connectedEmail}>`,
     to: toName ? `"${toName.trim()}" <${to.trim()}>` : to.trim(),
     subject,
+    text: body,
     html: finalBody,
     headers: {
       "List-Unsubscribe": `<mailto:${connectedEmail}>, <${unsubUrl}>`,
