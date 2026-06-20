@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { Check } from "lucide-react";
+import { Check, RefreshCw } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import { SendLogStatusBadge } from "@/components/campaigns/SendLogStatusBadge";
 import type { SendLogEntry } from "@/lib/types/send-log";
 
@@ -19,6 +21,7 @@ export function SentLogTab({ campaignId }: SentLogTabProps) {
   const [logs, setLogs] = useState<SendLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [retrying, setRetrying] = useState(false);
 
   const loadLogs = useCallback(async () => {
     setFetchError(null);
@@ -40,6 +43,23 @@ export function SentLogTab({ campaignId }: SentLogTabProps) {
     loadLogs().finally(() => setLoading(false));
   }, [loadLogs]);
 
+  async function handleRetryFailed() {
+    setRetrying(true);
+    const res = await fetch(`/api/campaigns/${campaignId}/logs/retry`, {
+      method: "POST",
+    });
+    const data = await res.json().catch(() => ({}));
+    setRetrying(false);
+
+    if (!res.ok) {
+      toast.error(typeof data.error === "string" ? data.error : "Retry failed");
+      return;
+    }
+
+    toast.success(`${data.retried} failed email(s) queued for retry`);
+    await loadLogs();
+  }
+
   const stats = useMemo(
     () => ({
       sent: logs.filter((log) => log.status === "sent").length,
@@ -59,18 +79,32 @@ export function SentLogTab({ campaignId }: SentLogTabProps) {
 
   return (
     <div className="flex flex-col">
-      <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {statItems.map(({ label, value }) => (
-          <div
-            key={label}
-            className="rounded-lg border border-border bg-surface px-4 py-3"
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {statItems.map(({ label, value }) => (
+            <div
+              key={label}
+              className="rounded-lg border border-border bg-surface px-4 py-3"
+            >
+              <p className="text-xs text-muted">{label}</p>
+              <p className="mt-1 font-mono text-xl font-medium text-foreground">
+                {value}
+              </p>
+            </div>
+          ))}
+        </div>
+        {stats.failed > 0 && (
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={retrying}
+            onClick={() => void handleRetryFailed()}
+            className="shrink-0"
           >
-            <p className="text-xs text-muted">{label}</p>
-            <p className="mt-1 font-mono text-xl font-medium text-foreground">
-              {value}
-            </p>
-          </div>
-        ))}
+            <RefreshCw className={`mr-2 h-3.5 w-3.5 ${retrying ? "animate-spin" : ""}`} />
+            {retrying ? "Retrying…" : `Retry ${stats.failed} failed`}
+          </Button>
+        )}
       </div>
 
       {loading ? (
